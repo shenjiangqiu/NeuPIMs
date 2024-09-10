@@ -251,7 +251,7 @@ typedef struct {
     bool is_initiated;   // whether initialization phase is done
     uint32_t generated;  // # tokens generated
     // mapped channel
-    int channel;
+    uint32_t channel;
 
     std::vector<Ptr<BTensor>> K_cache;
     std::vector<Ptr<BTensor>> V_cache;

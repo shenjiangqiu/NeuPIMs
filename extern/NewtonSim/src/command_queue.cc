@@ -109,7 +109,7 @@ bool CommandQueue::WillAcceptCommand(int rank, int bankgroup, int bank) const {
 }
 
 bool CommandQueue::QueueEmpty() const {
-    for (const auto q : queues_) {
+    for (const auto &q : queues_) {
         if (!q.empty()) {
             return false;
         }

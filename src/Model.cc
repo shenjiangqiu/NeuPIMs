@@ -193,6 +193,7 @@ std::shared_ptr<Tensor> Model::create_tensor(std::string name, std::vector<uint3
     // // spdlog::info("create tensor name {}", name);
 
     // return tensor;
+    assert(0);
 }
 
 // xxx is it necessary to return value?

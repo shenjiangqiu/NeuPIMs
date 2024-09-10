@@ -79,7 +79,7 @@ void ModelProgram::init_program() {
             for (int j = 0; j < batch_size; j++) {
                 /* - [] todo: change query to real query from gkv gen */
                 Ptr<InferRequest> request = _breq->_reqs[j];
-                int lj = request->input_size;
+                unsigned lj = request->input_size;
                 lj = 1;
                 // if (j < 8 || j >= 16) {
                 //     request->is_initiated = true;
@@ -645,6 +645,7 @@ Ptr<Operation> ModelProgram::block_QKV_split(uint32_t layer, uint32_t unit, uint
     // return add_op(std::make_shared<Split>(
     //     name_gen(LAYER(layer), BlockType::Attention, OperationType::QKVSplit), unit,
     //     dim_idx));
+    assert(false);
 }
 
 Ptr<Operation> ModelProgram::test_block_gelu(uint32_t layer) {

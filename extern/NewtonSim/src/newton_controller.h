@@ -26,7 +26,7 @@ class NewtonController : public Controller {
     void ResetStats() override { simple_stats_.Reset(); }
     std::pair<uint64_t, TransactionType> ReturnDoneTrans(uint64_t clock) override;
 
-    int channel_id_;
+    unsigned channel_id_;
 
     // stat for pim utilization
     void ResetPIMCycle() override;

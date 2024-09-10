@@ -55,7 +55,7 @@ class Operation : public std::enable_shared_from_this<Operation> {
     std::string repr();
 
    protected:
-    virtual void initialize_instructions(Tile &tile, Mapping mapping) {}
+    virtual void initialize_instructions(Tile &, Mapping ) {}
 
     static const uint32_t _NO_OPERAND = 0;
     static const uint32_t _INPUT_OPERAND = 100;

@@ -151,9 +151,9 @@ Tile MatMul::initialize_instructions(uint32_t B, uint32_t M, uint32_t K, uint32_
         batch_index.push_back(B);
     }
 
-    uint32_t tile_m;
-    uint32_t tile_k;
-    uint32_t tile_n;
+    uint32_t tile_m=0;
+    uint32_t tile_k=0;
+    uint32_t tile_n=0;
 
     // -- bias --
     // if      input size is 2, no need for bias initialization

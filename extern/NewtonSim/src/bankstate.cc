@@ -6,12 +6,12 @@ BankState::BankState(bool enable_dual_buffer)
     : enable_dual_buffer_(enable_dual_buffer),
       state_(State::CLOSED),
       pim_state_(State::CLOSED),
-      pim_open_row_(-1),
+      pim_lock_(false),
       cmd_timing_(static_cast<int>(CommandType::SIZE)),
       open_row_(-1),
+      pim_open_row_(-1),
       row_hit_count_(0),
-      pim_enter_count_(0),
-      pim_lock_(false) {
+      pim_enter_count_(0) {
     cmd_timing_[static_cast<int>(CommandType::READ)] = 0;
     cmd_timing_[static_cast<int>(CommandType::READ_PRECHARGE)] = 0;
     cmd_timing_[static_cast<int>(CommandType::WRITE)] = 0;
@@ -46,6 +46,7 @@ Command BankState::GetReadyCommand(const Command &cmd, uint64_t clk) const {
         return GetReadyNormalCommand(cmd, clk);
     } else {
         PrintError("(GetReadyCommand) Not Valid Command");
+        throw std::runtime_error("Not Valid Command");
     }
 }
 
@@ -85,7 +86,9 @@ Command BankState::GetReadyPIMCommand(const Command &cmd, uint64_t clk) const {
                     break;
                 case CommandType::G_ACT:
                     if (state_ == State::OPEN && cmd.Row() == open_row_) {
-                        PrintError("(GetReadyPIMCommand) Already Normal Buffer open this row");
+                        PrintError(
+                            "(GetReadyPIMCommand) Already Normal Buffer open "
+                            "this row");
                     }
                     required_type = cmd.cmd_type;
                     break;
@@ -96,11 +99,13 @@ Command BankState::GetReadyPIMCommand(const Command &cmd, uint64_t clk) const {
                 case CommandType::READRES:
                 case CommandType::PIM_PRECHARGE:  // no need to precharge
                 default:
-                    std::cerr << "(GetReadyPIMCommand) Channel:" << cmd.Channel()
-                              << " Rank:" << cmd.Rank() << " Bankgroup:" << cmd.Bankgroup()
-                              << " Bank:" << cmd.Bank() << std::endl;
-                    std::cerr << "PIM State: CLOSED, but try " << cmd.CommandTypeString()
-                              << std::endl;
+                    std::cerr
+                        << "(GetReadyPIMCommand) Channel:" << cmd.Channel()
+                        << " Rank:" << cmd.Rank()
+                        << " Bankgroup:" << cmd.Bankgroup()
+                        << " Bank:" << cmd.Bank() << std::endl;
+                    std::cerr << "PIM State: CLOSED, but try "
+                              << cmd.CommandTypeString() << std::endl;
                     PrintStateAndCommand(cmd);
                     AbruptExit(__FILE__, __LINE__);
                     break;
@@ -112,8 +117,10 @@ Command BankState::GetReadyPIMCommand(const Command &cmd, uint64_t clk) const {
                     if (cmd.Row() == pim_open_row_) {
                         required_type = cmd.cmd_type;
                     } else {
-                        PrintWarning("Not Ready for PWRITE immediately.., opened different row",
-                                     pim_open_row_, cmd.Row());
+                        PrintWarning(
+                            "Not Ready for PWRITE immediately.., opened "
+                            "different row",
+                            pim_open_row_, cmd.Row());
                         return Command();  // TODO: check it
                     }
                     break;
@@ -131,7 +138,8 @@ Command BankState::GetReadyPIMCommand(const Command &cmd, uint64_t clk) const {
                     }
                     break;
                 case CommandType::G_ACT:
-                    PrintError("(GetReadyPIMCommand) G_ACT impossible during open");
+                    PrintError(
+                        "(GetReadyPIMCommand) G_ACT impossible during open");
                     break;
                 case CommandType::PIM_PRECHARGE:
                 case CommandType::COMP:
@@ -141,7 +149,8 @@ Command BankState::GetReadyPIMCommand(const Command &cmd, uint64_t clk) const {
                     break;
                 // <<< gsheo
                 default:
-                    std::cerr << "(GetReadyPIMCommand) Unknown type!" << std::endl;
+                    std::cerr << "(GetReadyPIMCommand) Unknown type!"
+                              << std::endl;
                     PrintStateAndCommand(cmd);
                     AbruptExit(__FILE__, __LINE__);
                     break;
@@ -160,7 +169,8 @@ Command BankState::GetReadyPIMCommand(const Command &cmd, uint64_t clk) const {
                 case CommandType::PIM_PRECHARGE:
                 // <<< gsheo
                 default:
-                    std::cerr << "(GetReadyPIMCommand) Unknown type!" << std::endl;
+                    std::cerr << "(GetReadyPIMCommand) Unknown type!"
+                              << std::endl;
                     PrintStateAndCommand(cmd);
                     AbruptExit(__FILE__, __LINE__);
                     break;
@@ -178,7 +188,8 @@ Command BankState::GetReadyPIMCommand(const Command &cmd, uint64_t clk) const {
             // PrintImportant(cmd.CommandTypeString(), "clk:", clk,
             //                "cmd_timing:",
             //                cmd_timing_[static_cast<int>(required_type)]);
-            return Command(required_type, cmd.addr, cmd.hex_addr, cmd.is_last_comps, cmd.num_comps);
+            return Command(required_type, cmd.addr, cmd.hex_addr,
+                           cmd.is_last_comps, cmd.num_comps);
         }
         // Command fordebug = Command(required_type, cmd.addr, cmd.hex_addr);
         // std::cout << "(GetReadyCommand) cur:" << cmd.CommandTypeString()
@@ -189,13 +200,15 @@ Command BankState::GetReadyPIMCommand(const Command &cmd, uint64_t clk) const {
     }
     return Command();
 }
-Command BankState::GetReadyNormalCommand(const Command &cmd, uint64_t clk) const {
+Command BankState::GetReadyNormalCommand(const Command &cmd,
+                                         uint64_t clk) const {
     CommandType required_type = CommandType::SIZE;
     switch (state_) {
         case State::CLOSED:
             switch (cmd.cmd_type) {
                 case CommandType::P_HEADER:  // p_header for gwrite
-                    if (pim_state_ == State::OPEN && pim_open_row_ == cmd.Row()) {
+                    if (pim_state_ == State::OPEN &&
+                        pim_open_row_ == cmd.Row()) {
                         required_type = CommandType::PIM_PRECHARGE;
                     } else {
                         return Command(cmd);
@@ -204,10 +217,12 @@ Command BankState::GetReadyNormalCommand(const Command &cmd, uint64_t clk) const
                 case CommandType::READ:
                 case CommandType::WRITE:
                 case CommandType::GWRITE:
-                    if (pim_state_ == State::OPEN && cmd.Row() == pim_open_row_) {
+                    if (pim_state_ == State::OPEN &&
+                        cmd.Row() == pim_open_row_) {
                         required_type = CommandType::PIM_PRECHARGE;
                         PrintColor(Color::RED,
-                                   "(GetReadyPIMCommand) Already PIM Buffer open this row");
+                                   "(GetReadyPIMCommand) Already PIM Buffer "
+                                   "open this row");
                         break;
                     }
                     required_type = CommandType::ACTIVATE;
@@ -220,7 +235,8 @@ Command BankState::GetReadyNormalCommand(const Command &cmd, uint64_t clk) const
                     }
                     break;
                 default:
-                    std::cerr << "(GetReadyNormalCommand) Unknown type!" << std::endl;
+                    std::cerr << "(GetReadyNormalCommand) Unknown type!"
+                              << std::endl;
                     AbruptExit(__FILE__, __LINE__);
                     break;
             }
@@ -254,7 +270,8 @@ Command BankState::GetReadyNormalCommand(const Command &cmd, uint64_t clk) const
                     required_type = CommandType::PRECHARGE;
                     break;
                 default:
-                    std::cerr << "(GetReadyNormalCommand) Unknown type!" << std::endl;
+                    std::cerr << "(GetReadyNormalCommand) Unknown type!"
+                              << std::endl;
                     AbruptExit(__FILE__, __LINE__);
                     break;
             }
@@ -350,9 +367,10 @@ void BankState::UpdatePIMState(const Command &cmd) {
                     pim_open_row_ = cmd.Row();
                     break;
                 default:
-                    std::cout << "(UpdatePIMState) addr: " << HexString(cmd.hex_addr)
-                              << " rank:" << cmd.Rank() << " bg:" << cmd.Bankgroup()
-                              << " bank:" << cmd.Bank() << " ";
+                    std::cout
+                        << "(UpdatePIMState) addr: " << HexString(cmd.hex_addr)
+                        << " rank:" << cmd.Rank() << " bg:" << cmd.Bankgroup()
+                        << " bank:" << cmd.Bank() << " ";
                     PrintStateAndCommand(cmd);
                     AbruptExit(__FILE__, __LINE__);
             }
@@ -378,9 +396,10 @@ void BankState::UpdatePIMState(const Command &cmd) {
                 case CommandType::PIM_PRECHARGE:
                 // <<< gsheo
                 default:
-                    std::cout << "(UpdatePIMState) addr: " << HexString(cmd.hex_addr)
-                              << " rank:" << cmd.Rank() << " bg:" << cmd.Bankgroup()
-                              << " bank:" << cmd.Bank() << " ";
+                    std::cout
+                        << "(UpdatePIMState) addr: " << HexString(cmd.hex_addr)
+                        << " rank:" << cmd.Rank() << " bg:" << cmd.Bankgroup()
+                        << " bank:" << cmd.Bank() << " ";
                     PrintStateAndCommand(cmd);
                     AbruptExit(__FILE__, __LINE__);
             }
@@ -408,7 +427,8 @@ void BankState::UpdateTiming(CommandType cmd_type, uint64_t time) {
 }
 
 /* Return the cmd required before issuing the cmd in the current state */
-Command BankState::GetReadyCommandSingle(const Command &cmd, uint64_t clk) const {
+Command BankState::GetReadyCommandSingle(const Command &cmd,
+                                         uint64_t clk) const {
     // In case of single buffer, no usage of PIM_PRECHARGE
     CommandType required_type = CommandType::SIZE;
     switch (state_) {
@@ -433,8 +453,9 @@ Command BankState::GetReadyCommandSingle(const Command &cmd, uint64_t clk) const
                 // <<< gsheo
                 default:
                     PrintWarning("(GetReadyCommandSingle) Unknown type! addr: ",
-                                 HexString(cmd.hex_addr), "channel:", cmd.Channel(),
-                                 "rank:", cmd.Rank(), "bg:", cmd.Bankgroup(), "bank:", cmd.Bank());
+                                 HexString(cmd.hex_addr),
+                                 "channel:", cmd.Channel(), "rank:", cmd.Rank(),
+                                 "bg:", cmd.Bankgroup(), "bank:", cmd.Bank());
                     PrintStateAndCommand(cmd);
                     AbruptExit(__FILE__, __LINE__);
                     break;
@@ -446,7 +467,8 @@ Command BankState::GetReadyCommandSingle(const Command &cmd, uint64_t clk) const
                 case CommandType::WRITE:
                     if (pim_lock_) {
                         PrintStateAndCommand(cmd);
-                        std::cerr << "Try to getReadyCommand for READ/WRITE during PIM lock"
+                        std::cerr << "Try to getReadyCommand for READ/WRITE "
+                                     "during PIM lock"
                                   << std::endl;
                         AbruptExit(__FILE__, __LINE__);
                     }
@@ -482,7 +504,8 @@ Command BankState::GetReadyCommandSingle(const Command &cmd, uint64_t clk) const
                     break;
                 // <<< gsheo
                 default:
-                    std::cerr << "(GetReadyCommandSingle) Unknown type!" << std::endl;
+                    std::cerr << "(GetReadyCommandSingle) Unknown type!"
+                              << std::endl;
                     PrintStateAndCommand(cmd);
                     AbruptExit(__FILE__, __LINE__);
                     break;
@@ -494,11 +517,16 @@ Command BankState::GetReadyCommandSingle(const Command &cmd, uint64_t clk) const
             PrintStateAndCommand(cmd);
             AbruptExit(__FILE__, __LINE__);
             break;
+        case State::SREF:
+            throw std::runtime_error(
+                "SREF state not supported in single buffer");
+            break;
     }
 
     if (required_type != CommandType::SIZE) {
         if (clk >= cmd_timing_[static_cast<int>(required_type)]) {
-            return Command(required_type, cmd.addr, cmd.hex_addr, cmd.is_last_comps, cmd.num_comps);
+            return Command(required_type, cmd.addr, cmd.hex_addr,
+                           cmd.is_last_comps, cmd.num_comps);
         }
     }
     return Command();
@@ -528,9 +556,11 @@ void BankState::UpdateStateSingle(const Command &cmd) {
                 case CommandType::ACTIVATE:
                 case CommandType::REFRESH:
                 default:
-                    std::cout << "(UpdateStateSingle) addr: " << HexString(cmd.hex_addr)
-                              << " rank:" << cmd.Rank() << " bg:" << cmd.Bankgroup()
-                              << " bank:" << cmd.Bank() << " ";
+                    std::cout
+                        << "(UpdateStateSingle) addr: "
+                        << HexString(cmd.hex_addr) << " rank:" << cmd.Rank()
+                        << " bg:" << cmd.Bankgroup() << " bank:" << cmd.Bank()
+                        << " ";
                     PrintStateAndCommand(cmd);
                     AbruptExit(__FILE__, __LINE__);
             }
@@ -562,9 +592,11 @@ void BankState::UpdateStateSingle(const Command &cmd) {
                 case CommandType::READRES:
                 // <<< gsheo
                 default:
-                    std::cout << "(UpdateStateSingle) addr: " << HexString(cmd.hex_addr)
-                              << " rank:" << cmd.Rank() << " bg:" << cmd.Bankgroup()
-                              << " bank:" << cmd.Bank() << " ";
+                    std::cout
+                        << "(UpdateStateSingle) addr: "
+                        << HexString(cmd.hex_addr) << " rank:" << cmd.Rank()
+                        << " bg:" << cmd.Bankgroup() << " bank:" << cmd.Bank()
+                        << " ";
                     PrintStateAndCommand(cmd);
                     AbruptExit(__FILE__, __LINE__);
             }

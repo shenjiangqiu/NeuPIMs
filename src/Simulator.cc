@@ -11,7 +11,8 @@
 
 namespace fs = std::filesystem;
 
-Simulator::Simulator(SimulationConfig config) : _config(config), _core_cycles(0) {
+Simulator::Simulator(SimulationConfig config)
+    : _config(config), _core_cycles(0) {
     // Create dram object
     _core_period = 1.0 / ((double)config.core_freq);
     _icnt_period = 1.0 / ((double)config.icnt_freq);
@@ -20,8 +21,10 @@ Simulator::Simulator(SimulationConfig config) : _config(config), _core_cycles(0)
     _dram_time = 0.0;
     _icnt_time = 0.0;
 
-    std::string pim_config =
-        fs::path(__FILE__).parent_path().append(config.pim_config_path).string();
+    std::string pim_config = fs::path(__FILE__)
+                                 .parent_path()
+                                 .append(config.pim_config_path)
+                                 .string();
     spdlog::info("Newton config: {}", pim_config);
     config.pim_config_path = pim_config;
     _dram = std::make_unique<PIM>(config);
@@ -39,9 +42,10 @@ Simulator::Simulator(SimulationConfig config) : _config(config), _core_cycles(0)
     _cores.resize(config.num_cores);
     _n_cores = config.num_cores;
     _n_memories = config.dram_channels;
-    for (int core_index = 0; core_index < _n_cores; core_index++) {
+    for (unsigned core_index = 0; core_index < _n_cores; core_index++) {
         spdlog::info("initializing NeuPIM SystolicWS cores.");
-        _cores[core_index] = std::make_unique<NeuPIMSystolicWS>(core_index, _config);
+        _cores[core_index] =
+            std::make_unique<NeuPIMSystolicWS>(core_index, _config);
     }
 
     if (config.scheduler_type == "simple") {
@@ -51,9 +55,11 @@ Simulator::Simulator(SimulationConfig config) : _config(config), _core_cycles(0)
     }
 
     // } else if (config.scheduler_type == "time_multiplex") {
-    //     _scheduler = std::make_unique<TimeMultiplexScheduler>(_config, &_core_cycles);
+    //     _scheduler = std::make_unique<TimeMultiplexScheduler>(_config,
+    //     &_core_cycles);
     // } else if (config.scheduler_type == "spatial_split") {
-    //     _scheduler = std::make_unique<HalfSplitScheduler>(_config, &_core_cycles);
+    //     _scheduler = std::make_unique<HalfSplitScheduler>(_config,
+    //     &_core_cycles);
     // }
 
     _client = std::make_unique<Client>(_config);
@@ -93,7 +99,7 @@ void Simulator::log_stage_stat() {
 
     int prev_cycle = 0;
 
-    for (int i = 0; i < _stage_stats.size(); i++) {
+    for (unsigned i = 0; i < _stage_stats.size(); i++) {
         StageStat stage_stat = _stage_stats[i];
         std::string stage_row = "";
 
@@ -113,24 +119,32 @@ void Simulator::log_stage_stat() {
 void Simulator::cycle() {
     OpStat op_stat;
     ModelStat model_stat;
-    uint32_t tile_count;
+    // uint32_t tile_count;
+    SPDLOG_INFO("Simulation Start");
     while (running()) {
-        int model_id = 0;
+        // int model_id = 0;
 
         set_cycle_mask();
         // Core Cycle
         if (_cycle_mask & CORE_MASK) {
+
+            // client to scheduler, info: InferRequest
             while (_client->has_request()) {  // FIXME: change while to if
-                std::shared_ptr<InferRequest> infer_request = _client->pop_request();
+                std::shared_ptr<InferRequest> infer_request =
+                    _client->pop_request();
                 _scheduler->add_request(infer_request);
+                SPDLOG_DEBUG("Request added to scheduler, id: {}",
+                             infer_request->id);
             }
             _client->cycle();
-
+            // scheduler to client, info: InferRequest
             while (_scheduler->has_completed_request()) {
-                std::shared_ptr<InferRequest> response = _scheduler->pop_completed_request();
+                std::shared_ptr<InferRequest> response =
+                    _scheduler->pop_completed_request();
                 _client->receive_response(response);
+                SPDLOG_DEBUG("Request completed, id: {}", response->id);
             }
-
+            // stage changed means all programs are done
             if (_scheduler->has_stage_changed()) {
                 _scheduler->reset_has_stage_changed_status();
                 // _icnt->log(_scheduler->get_prev_stage());
@@ -138,7 +152,9 @@ void Simulator::cycle() {
             }
             _scheduler->cycle();
 
-            for (int core_id = 0; core_id < _n_cores; core_id++) {
+            for (unsigned core_id = 0; core_id < _n_cores; core_id++) {
+
+                // finished tile
                 auto finished_tile = _cores[core_id]->pop_finished_tile();
                 if (finished_tile == nullptr) {
                 } else if (finished_tile->status == Tile::Status::FINISH) {
@@ -151,7 +167,8 @@ void Simulator::cycle() {
                 // >>> todo: support 2 sub-batch
                 if (!_scheduler->empty1()) {
                     Tile &tile = _scheduler->top_tile1(core_id);
-                    if ((tile.status != Tile::Status::EMPTY) && _cores[core_id]->can_issue(tile)) {
+                    if ((tile.status != Tile::Status::EMPTY) &&
+                        _cores[core_id]->can_issue(tile)) {
                         if (tile.status == Tile::Status::INITIALIZED) {
                             assert(tile.stage_platform == StagePlatform::SA);
                             _cores[core_id]->issue(tile);
@@ -161,7 +178,8 @@ void Simulator::cycle() {
                 }
                 if (!_scheduler->empty2()) {
                     Tile &tile = _scheduler->top_tile2(core_id);
-                    if ((tile.status != Tile::Status::EMPTY) && _cores[core_id]->can_issue_pim()) {
+                    if ((tile.status != Tile::Status::EMPTY) &&
+                        _cores[core_id]->can_issue_pim()) {
                         if (tile.status == Tile::Status::INITIALIZED) {
                             assert(tile.stage_platform == StagePlatform::PIM);
                             _cores[core_id]->issue_pim(tile);
@@ -181,12 +199,14 @@ void Simulator::cycle() {
         }
         // Interconnect cycle
         if (_cycle_mask & ICNT_MASK) {
-            for (int core_id = 0; core_id < _n_cores; core_id++) {
-                for (uint32_t channel_index = 0; channel_index < _n_memories; ++channel_index) {
+            for (unsigned core_id = 0; core_id < _n_cores; core_id++) {
+                for (uint32_t channel_index = 0; channel_index < _n_memories;
+                     ++channel_index) {
                     auto core_ind = core_id * _n_cores + channel_index;
                     // core -> ICNT (sub-batch #1)
                     if (_cores[core_id]->has_memory_request1(channel_index)) {
-                        MemoryAccess *front = _cores[core_id]->top_memory_request1(channel_index);
+                        MemoryAccess *front =
+                            _cores[core_id]->top_memory_request1(channel_index);
                         front->core_id = core_id;
                         if (!_icnt->is_full(core_ind, front)) {
                             _icnt->push(core_ind, get_dest_node(front), front);
@@ -195,7 +215,8 @@ void Simulator::cycle() {
                     }
                     // // core -> ICNT (sub-batch #2)
                     if (_cores[core_id]->has_memory_request2(channel_index)) {
-                        MemoryAccess *front = _cores[core_id]->top_memory_request2(channel_index);
+                        MemoryAccess *front =
+                            _cores[core_id]->top_memory_request2(channel_index);
                         front->core_id = core_id;
                         if (!_icnt->is_full(core_ind, front)) {
                             _icnt->push(core_ind, get_dest_node(front), front);
@@ -204,13 +225,14 @@ void Simulator::cycle() {
                     }
                     // ICNT -> core
                     if (!_icnt->is_empty(core_ind)) {
-                        _cores[core_id]->push_memory_response(_icnt->top(core_ind));
+                        _cores[core_id]->push_memory_response(
+                            _icnt->top(core_ind));
                         _icnt->pop(core_ind);
                     }
                 }
             }
 
-            for (int dram_ind = 0; dram_ind < _n_memories; dram_ind++) {
+            for (unsigned dram_ind = 0; dram_ind < _n_memories; dram_ind++) {
                 auto mem_ind = _n_cores * _n_memories + dram_ind;
 
                 // ICNT to memory (log write)
@@ -234,8 +256,10 @@ void Simulator::cycle() {
                 }
 
                 // Pop response to ICNT from dram (log read)
-                if (!_dram->is_empty(dram_ind) && !_icnt->is_full(mem_ind, _dram->top(dram_ind))) {
-                    _icnt->push(mem_ind, get_dest_node(_dram->top(dram_ind)), _dram->top(dram_ind));
+                if (!_dram->is_empty(dram_ind) &&
+                    !_icnt->is_full(mem_ind, _dram->top(dram_ind))) {
+                    _icnt->push(mem_ind, get_dest_node(_dram->top(dram_ind)),
+                                _dram->top(dram_ind));
                     _dram->pop(dram_ind);
                 }
             }
@@ -245,7 +269,7 @@ void Simulator::cycle() {
     }
     spdlog::info("Simulation Finished");
     /* Print simulation stats */
-    for (int core_id = 0; core_id < _n_cores; core_id++) {
+    for (unsigned core_id = 0; core_id < _n_cores; core_id++) {
         _cores[core_id]->print_stats();
         _cores[core_id]->log();
     }

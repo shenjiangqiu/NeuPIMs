@@ -1,4 +1,4 @@
-#pragma once
+
 
 #include "Sram.h"
 #define NUM_PORTS 3
@@ -14,9 +14,12 @@ Sram::Sram(SimulationConfig config, const cycle_type &core_cycle, bool accum)
 }
 
 bool Sram::check_hit(addr_type address, int buffer_id) {
-    // spdlog::info("check_hit addr:{:x}, buffer_id:{}, end: {}", address, buffer_id,
-    //              _cache_table[buffer_id].find(address) == _cache_table[buffer_id].end());
-    if (_cache_table[buffer_id].find(address) == _cache_table[buffer_id].end()) return false;
+    // spdlog::info("check_hit addr:{:x}, buffer_id:{}, end: {}", address,
+    // buffer_id,
+    //              _cache_table[buffer_id].find(address) ==
+    //              _cache_table[buffer_id].end());
+    if (_cache_table[buffer_id].find(address) == _cache_table[buffer_id].end())
+        return false;
     _cache_table[buffer_id][address].timestamp = _core_cycle;
     return _cache_table[buffer_id][address].valid;
 }
@@ -32,7 +35,8 @@ bool Sram::check_remain(size_t size, int buffer_id) {
 }
 
 bool Sram::check_allocated(addr_type address, int buffer_id) {
-    return _cache_table[buffer_id].find(address) != _cache_table[buffer_id].end();
+    return _cache_table[buffer_id].find(address) !=
+           _cache_table[buffer_id].end();
 }
 
 void Sram::cycle() {}
@@ -47,14 +51,18 @@ void Sram::flush(int buffer_id) {
 //   reserve `allocated_size`
 // initialize `SramEntry` into `_cache_table`
 // address is cache table key.
-void Sram::reserve(addr_type address, int buffer_id, size_t allocated_size, size_t count) {
-    if (_cache_table[buffer_id].find(address) == _cache_table[buffer_id].end()) {
+void Sram::reserve(addr_type address, int buffer_id, size_t allocated_size,
+                   size_t count) {
+    if (_cache_table[buffer_id].find(address) ==
+        _cache_table[buffer_id].end()) {
         if (!check_remain(allocated_size, buffer_id)) {
             print_all(buffer_id);
             assert(0);
         }
         _current_size[buffer_id] += allocated_size;
-    } else if (_cache_table[buffer_id].find(address) != _cache_table[buffer_id].end() && _accum) {
+    } else if (_cache_table[buffer_id].find(address) !=
+                   _cache_table[buffer_id].end() &&
+               _accum) {
         // xxx: cannot understand here: sylee
         assert(0);
         assert(_cache_table[buffer_id][address].size == allocated_size);
@@ -76,7 +84,8 @@ void Sram::fill(addr_type address, int buffer_id) {
     assert(_cache_table[buffer_id][address].remain_req_count > 0 &&
            !_cache_table[buffer_id][address].valid);
     _cache_table[buffer_id][address].remain_req_count--;
-    // spdlog::info("sram address {:x}, buffer_id: {}, count down to {}", address, buffer_id,
+    // spdlog::info("sram address {:x}, buffer_id: {}, count down to {}",
+    // address, buffer_id,
     //              _cache_table[buffer_id][address].remain_req_count);
     if (_cache_table[buffer_id][address].remain_req_count == 0) {
         _cache_table[buffer_id][address].valid = true;

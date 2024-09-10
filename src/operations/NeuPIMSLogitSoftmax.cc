@@ -100,12 +100,12 @@ Tile NeuPIMSLogitSoftmax::initialize_instructions(int start, int end) {
             uint32_t seq_len = query->get_dims()[1];
             assert(seq_len == key->get_dims()[2]);
 
-            for (int h_idx = 0; h_idx < _nh; h_idx++) {
+            for (unsigned h_idx = 0; h_idx < _nh; h_idx++) {
                 std::vector<addr_type> dram_query_addrs;
                 std::vector<addr_type> dram_key_addrs;
 
-                for (int dk_idx = 0; dk_idx < _dk; dk_idx++) {
-                    for (int seq_idx = 0; seq_idx < seq_len; seq_idx++) {
+                for (unsigned dk_idx = 0; dk_idx < _dk; dk_idx++) {
+                    for (unsigned seq_idx = 0; seq_idx < seq_len; seq_idx++) {
                         dram_query_addrs.push_back(
                             query->get_addr(std::vector<uint32_t>{h_idx, seq_idx, dk_idx}));
                         dram_key_addrs.push_back(
@@ -306,7 +306,7 @@ void NeuPIMSLogitSoftmax::calculate_loops() {
     uint32_t E = _config.model_n_embd / _config.n_tp;
     // dram row capacity (unit: number of parameter)
     uint32_t page_size = _config.dram_page_size / _config.precision;
-    uint32_t banks_per_channel = _config.dram_banks_per_ch;
+    // uint32_t banks_per_channel = _config.dram_banks_per_ch;
     uint32_t datas_per_comp_cmd = _config.pim_comp_coverage;
 
     _chunks = ceil((double)E / page_size);            // # of gwrite
@@ -337,7 +337,7 @@ uint32_t NeuPIMSLogitSoftmax::sram_size_needed() {
     spdlog::info("_E:{}, _E/heads_per_dram_page:{}", _E, chunks);
 
     int sram_needs = 0;
-    for (int i = 0; i < _batch_size; ++i) {
+    for (unsigned i = 0; i < _batch_size; ++i) {
         auto Q = _qs[i];  // [h, q_len, d_k]
         auto K = _ks[i];  // [h, d_k, seq_len]
 

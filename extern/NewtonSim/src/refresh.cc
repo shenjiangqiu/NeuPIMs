@@ -1,15 +1,16 @@
 #include "refresh.h"
 
 namespace dramsim3 {
-Refresh::Refresh(const Config &config, ChannelState &channel_state, SimpleStats &simple_stats)
+Refresh::Refresh(const Config &config, ChannelState &channel_state,
+                 SimpleStats &simple_stats)
     : clk_(0),
       config_(config),
       channel_state_(channel_state),
       refresh_policy_(config.refresh_policy),
+      simple_stats_(simple_stats),
       next_rank_(0),
       next_bg_(0),
-      next_bank_(0),
-      simple_stats_(simple_stats) {
+      next_bank_(0) {
     if (refresh_policy_ == RefreshPolicy::RANK_LEVEL_SIMULTANEOUS) {
         refresh_interval_ = config_.tREFI;  // gsheo: 1950 or 3900 for HBM
     } else if (refresh_policy_ == RefreshPolicy::BANK_LEVEL_STAGGERED) {
@@ -33,7 +34,8 @@ std::pair<int, int> Refresh::GetRefreshSlack() {
     if (refresh_policy_ != RefreshPolicy::RANK_LEVEL_STAGGERED)
         PrintError("Refresh policy is not RANK_LEVEL_STAGGERED");
 
-    return std::make_pair(next_rank_, refresh_interval_ - (clk_ % refresh_interval_));
+    return std::make_pair(next_rank_,
+                          refresh_interval_ - (clk_ % refresh_interval_));
 }
 
 void Refresh::InsertRefresh() {
@@ -58,7 +60,8 @@ void Refresh::InsertRefresh() {
         // Fully staggered per bank refresh
         case RefreshPolicy::BANK_LEVEL_STAGGERED:
             if (!channel_state_.IsRankSelfRefreshing(next_rank_)) {
-                channel_state_.BankNeedRefresh(next_rank_, next_bg_, next_bank_, true);
+                channel_state_.BankNeedRefresh(next_rank_, next_bg_, next_bank_,
+                                               true);
             }
             IterateNext();
             break;

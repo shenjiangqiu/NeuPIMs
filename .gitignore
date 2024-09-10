@@ -15,3 +15,5 @@ dramsim3epoch.json
 
 log.sh
 perf.*
+/build_release
+/build_rel_dbg

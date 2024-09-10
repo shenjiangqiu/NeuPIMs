@@ -72,7 +72,7 @@ Timing::Timing(const Config &config)
 
     // same bank
     int gwrite_latency = config.gwrite_delay;
-    int pim_act_to_act_same_bk = activate_to_activate;
+    // int pim_act_to_act_same_bk = activate_to_activate;
     int act_to_pim_act_same_bk = activate_to_activate;
     int read_to_pim_read_same_bk = read_to_read_l;
     int write_to_pim_read_same_bk = write_to_read_l;
@@ -87,7 +87,7 @@ Timing::Timing(const Config &config)
 
     if (config.enable_dual_buffer) {
         // same bank
-        pim_act_to_act_same_bk = activate_to_activate_l;
+        // pim_act_to_act_same_bk = activate_to_activate_l;
         act_to_pim_act_same_bk = activate_to_activate_l;
         read_to_pim_read_same_bk = 0;  // read_to_read_s;
         write_to_pim_read_same_bk = 0; // write_to_read_s;

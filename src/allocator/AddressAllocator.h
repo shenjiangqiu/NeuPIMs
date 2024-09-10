@@ -1,14 +1,15 @@
 #pragma once
 #include "../Common.h"
 
-// Used in NPU + PIM to allocate weights, and in NPU only to allocate all tensors.
+// Used in NPU + PIM to allocate weights, and in NPU only to allocate all
+// tensors.
 class WgtAlloc : public Singleton<WgtAlloc> {
-   private:
+private:
     friend class Singleton;
     WgtAlloc();
     ~WgtAlloc() = default;
 
-   public:
+public:
     addr_type _base_addr;
     uint64_t _top_addr;
 
@@ -17,12 +18,12 @@ class WgtAlloc : public Singleton<WgtAlloc> {
 };
 
 class ActAlloc : public Singleton<ActAlloc> {
-   private:
+private:
     friend class Singleton;
     ActAlloc();
     ~ActAlloc() = default;
 
-   public:
+public:
     addr_type _base_addr;
     addr_type _top_addr;
     uint64_t _act_buf_size;   // fixed.
@@ -30,17 +31,18 @@ class ActAlloc : public Singleton<ActAlloc> {
 
     void init(addr_type base_addr);
     addr_type allocate(uint64_t size);
-    addr_type get_next_aligned_addr();  // aligned limit addr + alignment of ActAlloc buf
+    addr_type
+    get_next_aligned_addr();  // aligned limit addr + alignment of ActAlloc buf
     void flush();
 };
 
 class KVCacheAlloc : public Singleton<KVCacheAlloc> {
-   private:
+private:
     friend class Singleton;
     KVCacheAlloc();
     ~KVCacheAlloc() = default;
 
-   public:
+public:
     RunMode _mode;
     addr_type _base_addr;
 
@@ -56,7 +58,8 @@ class KVCacheAlloc : public Singleton<KVCacheAlloc> {
     uint32_t _dram_row_size;    // DRAM row size (1024KB)
     uint32_t _num_ele_per_row;  // DRAM row size / precision
     uint32_t _bank_per_ch;
-    std::vector<Ptr<std::deque<uint64_t>>> _rows;  // channel -> free rows base index
+    std::vector<Ptr<std::deque<uint64_t>>>
+        _rows;  // channel -> free rows base index
 
     void init(addr_type base_addr);
     void init_npu_layout(addr_type base_addr);

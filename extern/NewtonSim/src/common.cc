@@ -28,8 +28,9 @@ std::ostream &operator<<(std::ostream &os, const Command &cmd) {
         // <<< gsheo
         "WRONG"};
     os << fmt::format("{:<20} {:>3} {:>3} {:>3} {:>3} {:>#8x} {:>#8x}",
-                      command_string[static_cast<int>(cmd.cmd_type)], cmd.Channel(), cmd.Rank(),
-                      cmd.Bankgroup(), cmd.Bank(), cmd.Row(), cmd.Column());
+                      command_string[static_cast<int>(cmd.cmd_type)],
+                      cmd.Channel(), cmd.Rank(), cmd.Bankgroup(), cmd.Bank(),
+                      cmd.Row(), cmd.Column());
     return os;
 }
 // gsheo todo: what is the purpose of this function?
@@ -40,7 +41,8 @@ std::ostream &operator<<(std::ostream &os, const Transaction &trans) {
 }
 // gsheo todo: what is the purpose of this function?
 std::istream &operator>>(std::istream &is, Transaction &trans) {
-    std::unordered_set<std::string> write_types = {"WRITE", "write", "P_MEM_WR", "BOFF"};
+    std::unordered_set<std::string> write_types = {"WRITE", "write", "P_MEM_WR",
+                                                   "BOFF"};
     std::string mem_op;
     is >> std::hex >> trans.addr >> mem_op >> std::dec >> trans.added_cycle;
     // >>> gsheo
@@ -133,7 +135,8 @@ std::string ColorString(Color color) {
 
 std::string HexString(uint64_t addr) { return fmt::format("{:#X}", addr); }
 
-void PrintControllerLog(std::string method_name, int channel_id, int clk, const Command &cmd) {
+void PrintControllerLog(std::string method_name, unsigned channel_id,
+                        uint64_t clk, const Command &cmd) {
     if (LOGGING_CONFIG::LOGGING_ONLY_TROUBLE_ZONE) {
         if (channel_id != LOGGING_CONFIG::TROUBLE_CHANNEL) return;
         // if (cmd.hex_addr != LOGGING_CONFIG::TROUBLE_ADDR)
@@ -149,28 +152,31 @@ void PrintControllerLog(std::string method_name, int channel_id, int clk, const 
     std::string color_string = ColorString(color);
 
     if (cmd.cmd_type == CommandType::COMPS_READRES) {
-        PrintImportant(color_string, method_name, "cid:", channel_id, "clk:", clk, "|",
-                       cmd.CommandTypeString(), "| (address) rank:", cmd.Rank(),
-                       "bankgroup:", cmd.Bankgroup(), "bank:", cmd.Bank(),
-                       "addr:", HexString(cmd.hex_addr), "#comps:", cmd.num_comps);
+        PrintImportant(
+            color_string, method_name, "cid:", channel_id, "clk:", clk, "|",
+            cmd.CommandTypeString(), "| (address) rank:", cmd.Rank(),
+            "bankgroup:", cmd.Bankgroup(), "bank:", cmd.Bank(),
+            "addr:", HexString(cmd.hex_addr), "#comps:", cmd.num_comps);
         return;
     }
 
     if (cmd.cmd_type == CommandType::P_HEADER) {
-        PrintImportant(color_string, method_name, "cid:", channel_id, "clk:", clk, "|",
-                       cmd.CommandTypeString(), "| (packet) #comps:", cmd.num_comps,
+        PrintImportant(color_string, method_name, "cid:", channel_id,
+                       "clk:", clk, "|", cmd.CommandTypeString(),
+                       "| (packet) #comps:", cmd.num_comps,
                        "#readres:", cmd.num_readres);
         return;
     }
-    PrintImportant(color_string, method_name, "cid:", channel_id, "clk:", clk, "|",
-                   cmd.CommandTypeString(), "| (address) rank:", cmd.Rank(),
+    PrintImportant(color_string, method_name, "cid:", channel_id, "clk:", clk,
+                   "|", cmd.CommandTypeString(),
+                   "| (address) rank:", cmd.Rank(),
                    "bankgroup:", cmd.Bankgroup(), "bank:", cmd.Bank(),
                    "addr:", HexString(cmd.hex_addr));
     //    std::hex, std::uppercase, cmd.hex_addr, std::dec
 }
 
-void PrintTransactionLog(std::string method_name, int channel_id, int clk,
-                         const Transaction &trans) {
+void PrintTransactionLog(std::string method_name, unsigned channel_id,
+                         uint64_t clk, const Transaction &trans) {
     if (LOGGING_CONFIG::LOGGING_ONLY_TROUBLE_ZONE) {
         if (channel_id != LOGGING_CONFIG::TROUBLE_CHANNEL) return;
         // if (trans.addr != LOGGING_CONFIG::TROUBLE_ADDR)
@@ -182,8 +188,9 @@ void PrintTransactionLog(std::string method_name, int channel_id, int clk,
 
     std::string color_string = ColorString(color);
 
-    PrintImportant(color_string, method_name, "cid:", channel_id, "clk:", clk, "|",
-                   trans.TransactionTypeString(), "| addr:", HexString(trans.addr));
+    PrintImportant(color_string, method_name, "cid:", channel_id, "clk:", clk,
+                   "|", trans.TransactionTypeString(),
+                   "| addr:", HexString(trans.addr));
     //    std::hex, std::uppercase, cmd.hex_addr, std::dec
 }
 

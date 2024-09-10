@@ -32,7 +32,7 @@ std::pair<uint64_t, TransactionType> NeuPIMSController::ReturnDoneTrans(uint64_t
     auto it = return_queue_.begin();
     while (it != return_queue_.end()) {
         if (clk >= it->complete_cycle) {
-            TransactionType type = TransactionType::SIZE;
+            // TransactionType type = TransactionType::SIZE;
 
             if (it->is_write()) {
                 simple_stats_.Increment("num_writes_done");
@@ -371,7 +371,7 @@ void NeuPIMSController::ScheduleTransaction() {
                     // if there is read transaction (it->addr),
                     // first push it
                     if (read_queue_.size() > 0) {
-                        for (int i = 0; i < read_queue_.size(); i++) {
+                        for (unsigned i = 0; i < read_queue_.size(); i++) {
                             if (read_queue_[i].addr == it->addr) {
                                 // PrintDebug("(ScheduleTransaction) R->W dependency:!", it->addr);
                                 rw_dependency_lock_ = true;
@@ -451,7 +451,7 @@ void NeuPIMSController::IssueCommand(const Command &cmd) {
         if (cmd.IsGwrite())
             it->second.complete_cycle = clk_ + config_.gwrite_delay;
 
-        int before_size = return_queue_.size();
+        // int before_size = return_queue_.size();
         return_queue_.push_back(it->second);
         pending_pim_q_.erase(it);
     } else if (cmd.IsPIMHeader()) {

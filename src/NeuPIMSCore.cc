@@ -168,6 +168,7 @@ void NeuPIMSCore::issue(Tile &in_tile) {
 }
 
 void NeuPIMSCore::issue_pim(Tile &in_tile) {
+    
     spdlog::info("pim tile issued {}", in_tile.repr());
     auto tile = std::make_shared<Tile>(in_tile);
     tile->stat = TileStat(_core_cycle);

@@ -1,7 +1,11 @@
 #include "AddressAllocator.h"
 
 KVCacheAlloc::KVCacheAlloc()
-    : _kv_cache_size(0), _kv_cache_limit(0), _kv_cache_entry_size(0), _base_addr(0), _base_row(0) {}
+    : _kv_cache_size(0),
+      _kv_cache_limit(0),
+      _kv_cache_entry_size(0),
+      _base_addr(0),
+      _base_row(0) {}
 
 void KVCacheAlloc::init(addr_type base_addr) {
     _mode = Config::global_config.run_mode;
@@ -26,8 +30,10 @@ void KVCacheAlloc::init(addr_type base_addr) {
 void KVCacheAlloc::init_npu_layout(addr_type base_addr) {
     uint32_t max_active_reqs = Config::global_config.max_active_reqs;
     uint32_t max_seq_len = Config::global_config.max_seq_len;
-    uint32_t h = Config::global_config.model_n_head / Config::global_config.n_tp;
-    uint32_t d_k = Config::global_config.model_n_embd / Config::global_config.model_n_head;
+    uint32_t h =
+        Config::global_config.model_n_head / Config::global_config.n_tp;
+    uint32_t d_k =
+        Config::global_config.model_n_embd / Config::global_config.model_n_head;
     uint32_t precision = Config::global_config.precision;
 
     _base_addr = base_addr;
@@ -36,40 +42,49 @@ void KVCacheAlloc::init_npu_layout(addr_type base_addr) {
     ast(_base_addr + _kv_cache_size < Config::global_config.HBM_size);
 
     addr_type next_addr = _base_addr;
-    // The number of sequence lengths that can be stored per block / sequence length per block
-    // (a block consists of 32 * d_k elements)
-    // = Number of KV cache blocks in HBM
-    uint64_t num_kv_cache_entries = max_active_reqs * max_seq_len * h / _kv_cache_entry_size;
+    // The number of sequence lengths that can be stored per block / sequence
+    // length per block (a block consists of 32 * d_k elements) = Number of KV
+    // cache blocks in HBM
+    uint64_t num_kv_cache_entries =
+        max_active_reqs * max_seq_len * h / _kv_cache_entry_size;
 
     for (int i = 0; i < num_kv_cache_entries; ++i) {
         _kv_cache.push_back(next_addr);
-        next_addr += _kv_cache_entry_size * d_k * precision;  // 32 seq_len * d_k * precision
+        next_addr += _kv_cache_entry_size * d_k *
+                     precision;  // 32 seq_len * d_k * precision
     }
 }
 
 void KVCacheAlloc::init_pim_layout(addr_type base_addr) {
     // =rows of matrix in a DRAM PIM row
     constexpr uint32_t row_per_bank = 32768;
-    // byte offset X  // rank bit, bg bit, bank bit, ch bit, col bit = 1 + 2 + 2 + 5 + 10
+    // byte offset X  // rank bit, bg bit, bank bit, ch bit, col bit = 1 + 2 + 2
+    // + 5 + 10
     constexpr uint32_t row_offset = 20;
-    constexpr uint64_t mask = ~((1 << row_offset) - 1);     // 0x1111(64-21)0000(21)
+    constexpr uint64_t mask =
+        ~((1 << row_offset) - 1);  // 0x1111(64-21)0000(21)
     _dram_row_size = Config::global_config.dram_page_size;  // 1024
     _num_ele_per_row = _dram_row_size / Config::global_config.precision;  // 512
     _bank_per_ch = Config::global_config.dram_banks_per_ch;
     _dram_channels = Config::global_config.dram_channels;
 
-    base_addr = base_addr & mask;  // get last row index using
+    base_addr = base_addr & mask;               // get last row index using
     base_addr = base_addr + (1 << row_offset);  // move to next row index
 
     _base_addr = base_addr;
     _base_row = base_addr >> row_offset;  // get only row index
-
+    SPDLOG_INFO("KVCacheAlloc init: base_addr {}, base_row {}", _base_addr,
+                _base_row);
     // _rows: channel -> row idx
     uint32_t free_rows_size = row_per_bank - _base_row;
+    SPDLOG_INFO("free_rows_size: {}", free_rows_size);
     for (int i = 0; i < _dram_channels; ++i) {
         _rows.push_back(std::make_shared<std::deque<uint64_t>>());
         for (int j = 0; j < free_rows_size; ++j) {
-            if (_base_row + j < row_per_bank) _rows[i]->push_back(_base_row + j);
+            if (_base_row + j < row_per_bank) {
+                // SPDLOG_INFO("push_back:row[{}] {}", i, _base_row + j);
+                _rows[i]->push_back(_base_row + j);
+            }
         }
     }
 }
@@ -89,7 +104,7 @@ addr_type KVCacheAlloc::allocate(uint64_t ch) {
     ast(_rows[ch]->size() > 0);
     addr_type row = _rows[ch]->front();
     _rows[ch]->pop_front();
-    return row;  // return free row 
+    return row;  // return free row
 }
 
 void KVCacheAlloc::free(addr_type addr) {

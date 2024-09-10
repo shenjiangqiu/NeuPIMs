@@ -193,6 +193,7 @@ bool DRAMController::AddTransaction(Transaction trans) {
         return true;
     } else {
         PrintError("Invalid transaction type");
+        throw std::runtime_error("Invalid transaction type");
     }
 }
 
@@ -218,7 +219,7 @@ void DRAMController::ScheduleTransaction() {
                 // Enforce R->W dependency
                 if (pending_rd_q_.count(it->addr) > 0) {
                     if (read_queue_.size() > 0) {
-                        for (int i = 0; i < read_queue_.size(); i++) {
+                        for (unsigned i = 0; i < read_queue_.size(); i++) {
                             if (read_queue_[i].addr == it->addr) {
                                 PrintDebug("(ScheduleTransaction) R->W dependency:!", it->addr);
                                 rw_dependency_lock_ = true;

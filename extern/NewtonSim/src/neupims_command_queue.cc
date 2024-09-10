@@ -3,11 +3,19 @@
 namespace dramsim3 {
 
 NeuPIMSCommandQueue::NeuPIMSCommandQueue(int channel_id, const Config &config,
-                                         ChannelState &channel_state, SimpleStats &simple_stats)
-    : channel_id_(channel_id), rank_q_empty(config.ranks, true), config_(config),
-      channel_state_(channel_state), simple_stats_(simple_stats), is_in_ref_(false),
-      is_gwriting_(false), skip_pim_(false),
-      queue_size_(static_cast<size_t>(config_.cmd_queue_size)), queue_idx_(0), clk_(0) {
+                                         ChannelState &channel_state,
+                                         SimpleStats &simple_stats)
+    : rank_q_empty(config.ranks, true),
+      config_(config),
+      channel_state_(channel_state),
+      simple_stats_(simple_stats),
+      is_in_ref_(false),
+      skip_pim_(false),
+      queue_size_(static_cast<size_t>(config_.cmd_queue_size)),
+      queue_idx_(0),
+      clk_(0),
+      channel_id_(channel_id),
+      is_gwriting_(false) {
     if (config_.queue_structure == "PER_BANK") {
         queue_structure_ = QueueStructure::PER_BANK;
         num_queues_ = config_.banks * config_.ranks;
@@ -15,7 +23,8 @@ NeuPIMSCommandQueue::NeuPIMSCommandQueue(int channel_id, const Config &config,
         queue_structure_ = QueueStructure::PER_RANK;
         num_queues_ = config_.ranks;
     } else {
-        std::cerr << "Unsupportted queueing structure " << config_.queue_structure << std::endl;
+        std::cerr << "Unsupportted queueing structure "
+                  << config_.queue_structure << std::endl;
         AbruptExit(__FILE__, __LINE__);
     }
     total_pim_cycles_ = 0;
@@ -27,7 +36,7 @@ NeuPIMSCommandQueue::NeuPIMSCommandQueue(int channel_id, const Config &config,
         queues_.push_back(cmd_queue);
     }
     // last queue is for pim command
-    pim_cmd_queue_size_ = 128; // TODO: get from config
+    pim_cmd_queue_size_ = 128;  // TODO: get from config
     pim_queue_ = std::vector<Command>();
     pim_queue_.reserve(pim_cmd_queue_size_);
 }
@@ -52,7 +61,8 @@ void NeuPIMSCommandQueue::PrintAllQueue() const {
 }
 
 // called by controller:ClockTick()
-Command NeuPIMSCommandQueue::GetCommandToIssue(std::pair<int, int> refresh_slack) {
+Command NeuPIMSCommandQueue::GetCommandToIssue(
+    std::pair<int, int> refresh_slack) {
     if (!skip_pim_) {
         if (!pim_queue_.empty() && !is_in_ref_) {
             // First, check pim queue
@@ -63,14 +73,15 @@ Command NeuPIMSCommandQueue::GetCommandToIssue(std::pair<int, int> refresh_slack
                 return pim_cmd;
             } else {
                 // check whether to find other read/write command
-                PrintWarning("cid:", channel_id_, "remain_slack_:", remain_slack_);
-                if (remain_slack_ < 10)
-                    return Command();
+                PrintWarning("cid:", channel_id_,
+                             "remain_slack_:", remain_slack_);
+                if (remain_slack_ < 10) return Command();
             }
         }
     }
 
-    PrintInfo("cid:", channel_id_, "skip_pim:", skip_pim_, "is_in_ref:", is_in_ref_);
+    PrintInfo("cid:", channel_id_, "skip_pim:", skip_pim_,
+              "is_in_ref:", is_in_ref_);
 
     for (int i = 0; i < num_queues_; i++) {
         auto &queue = GetNextQueue();
@@ -82,8 +93,7 @@ Command NeuPIMSCommandQueue::GetCommandToIssue(std::pair<int, int> refresh_slack
         }
         auto cmd = GetFirstReadyInQueue(queue, refresh_slack);
         if (cmd.IsValid()) {
-            if (cmd.IsReadWrite())
-                EraseRWCommand(cmd);
+            if (cmd.IsReadWrite()) EraseRWCommand(cmd);
             return cmd;
         }
     }
@@ -124,24 +134,29 @@ bool NeuPIMSCommandQueue::ArbitratePrecharge(const CMDIterator &cmd_it,
     }
 
     for (auto prev_itr = queue.begin(); prev_itr != cmd_it; prev_itr++) {
-        if (prev_itr->Rank() == cmd.Rank() && prev_itr->Bankgroup() == cmd.Bankgroup() &&
+        if (prev_itr->Rank() == cmd.Rank() &&
+            prev_itr->Bankgroup() == cmd.Bankgroup() &&
             prev_itr->Bank() == cmd.Bank()) {
             return false;
         }
     }
 
     bool pending_row_hits_exist = false;
-    int open_row = channel_state_.OpenRow(cmd.Rank(), cmd.Bankgroup(), cmd.Bank());
+    int open_row =
+        channel_state_.OpenRow(cmd.Rank(), cmd.Bankgroup(), cmd.Bank());
     for (auto pending_itr = cmd_it; pending_itr != queue.end(); pending_itr++) {
-        if (pending_itr->Row() == open_row && pending_itr->Bank() == cmd.Bank() &&
-            pending_itr->Bankgroup() == cmd.Bankgroup() && pending_itr->Rank() == cmd.Rank()) {
+        if (pending_itr->Row() == open_row &&
+            pending_itr->Bank() == cmd.Bank() &&
+            pending_itr->Bankgroup() == cmd.Bankgroup() &&
+            pending_itr->Rank() == cmd.Rank()) {
             pending_row_hits_exist = true;
             break;
         }
     }
 
     bool rowhit_limit_reached =
-        channel_state_.RowHitCount(cmd.Rank(), cmd.Bankgroup(), cmd.Bank()) >= 4;
+        channel_state_.RowHitCount(cmd.Rank(), cmd.Bankgroup(), cmd.Bank()) >=
+        4;
     if (!pending_row_hits_exist || rowhit_limit_reached) {
         simple_stats_.Increment("num_ondemand_pres");
         return true;
@@ -149,16 +164,17 @@ bool NeuPIMSCommandQueue::ArbitratePrecharge(const CMDIterator &cmd_it,
     return false;
 }
 
-bool NeuPIMSCommandQueue::WillAcceptCommand(int rank, int bankgroup, int bank) const {
+bool NeuPIMSCommandQueue::WillAcceptCommand(int rank, int bankgroup,
+                                            int bank) const {
     if (rank == -1) {
-        return pim_queue_.size() < pim_cmd_queue_size_; // pim command queue
+        return pim_queue_.size() < pim_cmd_queue_size_;  // pim command queue
     }
     int q_idx = GetQueueIndex(rank, bankgroup, bank);
     return queues_[q_idx].size() < queue_size_;
 }
 
 bool NeuPIMSCommandQueue::QueueEmpty() const {
-    for (const auto q : queues_) {
+    for (const auto &q : queues_) {
         if (!q.empty()) {
             return false;
         }
@@ -168,8 +184,7 @@ bool NeuPIMSCommandQueue::QueueEmpty() const {
     // pim_queue_.empty();  // is it correct??
 }
 bool NeuPIMSCommandQueue::QueueEmpty(int rank) const {
-    if (rank == -1)
-        return pim_queue_.empty();
+    if (rank == -1) return pim_queue_.empty();
     int q_idx = GetQueueIndex(rank, -1, -1);
     return queues_[q_idx].empty();
 }
@@ -177,14 +192,15 @@ bool NeuPIMSCommandQueue::QueueEmpty(int rank) const {
 int NeuPIMSCommandQueue::GetPIMQueueSize() const { return pim_queue_.size(); }
 
 bool NeuPIMSCommandQueue::AddCommand(Command cmd) {
-    auto &queue = GetQueue(cmd.PIMQCommand(), cmd.Rank(), cmd.Bankgroup(), cmd.Bank());
+    auto &queue =
+        GetQueue(cmd.PIMQCommand(), cmd.Rank(), cmd.Bankgroup(), cmd.Bank());
 
     if (queue.size() < queue_size_) {
         queue.push_back(cmd);
 
         if (cmd.Rank() == -1) {
             // mark NOT empty for all ranks
-            for (int i = 0; i < rank_q_empty.size(); i++) {
+            for (unsigned i = 0; i < rank_q_empty.size(); i++) {
                 rank_q_empty[i] = false;
             }
             return true;
@@ -207,7 +223,7 @@ CMDQueue &NeuPIMSCommandQueue::GetNextQueue() {
 void NeuPIMSCommandQueue::GetRefQIndices(const Command &ref) {
     if (ref.cmd_type == CommandType::REFRESH) {
         if (queue_structure_ == QueueStructure::PER_BANK) {
-            for (int i = 0; i < num_queues_; i++) { // except for pim_q
+            for (int i = 0; i < num_queues_; i++) {  // except for pim_q
                 if (i / config_.banks == ref.Rank()) {
                     ref_q_indices_.insert(i);
                 }
@@ -215,14 +231,15 @@ void NeuPIMSCommandQueue::GetRefQIndices(const Command &ref) {
         } else {
             ref_q_indices_.insert(ref.Rank());
         }
-    } else { // refb
+    } else {  // refb
         int idx = GetQueueIndex(ref.Rank(), ref.Bankgroup(), ref.Bank());
         ref_q_indices_.insert(idx);
     }
     return;
 }
 
-int NeuPIMSCommandQueue::GetQueueIndex(int rank, int bankgroup, int bank) const {
+int NeuPIMSCommandQueue::GetQueueIndex(int rank, int bankgroup,
+                                       int bank) const {
     if (rank == -1) {
         return -1;
     }
@@ -230,11 +247,13 @@ int NeuPIMSCommandQueue::GetQueueIndex(int rank, int bankgroup, int bank) const 
     if (queue_structure_ == QueueStructure::PER_RANK) {
         return rank;
     } else {
-        return rank * config_.banks + bankgroup * config_.banks_per_group + bank;
+        return rank * config_.banks + bankgroup * config_.banks_per_group +
+               bank;
     }
 }
 
-CMDQueue &NeuPIMSCommandQueue::GetQueue(bool is_pimq_cmd, int rank, int bankgroup, int bank) {
+CMDQueue &NeuPIMSCommandQueue::GetQueue(bool is_pimq_cmd, int rank,
+                                        int bankgroup, int bank) {
     int index;
     if (is_pimq_cmd) {
         return pim_queue_;
@@ -245,12 +264,13 @@ CMDQueue &NeuPIMSCommandQueue::GetQueue(bool is_pimq_cmd, int rank, int bankgrou
     return queues_[index];
 }
 
-bool NeuPIMSCommandQueue::CanMeetRefreshDeadline(const CMDIterator cmd_it,
-                                                 std::pair<int, int> refresh_slack) {
-    int refresh_rank = refresh_slack.first;
+bool NeuPIMSCommandQueue::CanMeetRefreshDeadline(
+    const CMDIterator cmd_it, std::pair<int, int> refresh_slack) {
+    // int refresh_rank = refresh_slack.first;
     int remain_to_refresh = refresh_slack.second;
 
-    int estimated_latency = channel_state_.EstimatePIMOperationLatency(*cmd_it, clk_);
+    int estimated_latency =
+        channel_state_.EstimatePIMOperationLatency(*cmd_it, clk_);
 
     int remain_slack = remain_to_refresh - estimated_latency;
     remain_slack_ = 0;
@@ -270,16 +290,20 @@ void NeuPIMSCommandQueue::PrintQueue(CMDQueue &queue) const {
     PrintImportant("cmd_q( cid:", channel_id_, ")", commands_in_q);
 }
 
-Command NeuPIMSCommandQueue::GetReadyInPIMQueue(std::pair<int, int> refresh_slack) {
+Command NeuPIMSCommandQueue::GetReadyInPIMQueue(
+    std::pair<int, int> refresh_slack) {
     // estimation = channel_state_.EstimatePIMOperationLatency
-    // when pim_mode, execute only pim command 
-    // in case of pim header, erase without return, return next pim_cmd & pim_mode on
+    // when pim_mode, execute only pim command
+    // in case of pim header, erase without return, return next pim_cmd &
+    // pim_mode on
 
-    for (auto cmd_it = pim_queue_.begin(); cmd_it != pim_queue_.end(); cmd_it++) {
+    for (auto cmd_it = pim_queue_.begin(); cmd_it != pim_queue_.end();
+         cmd_it++) {
         if (is_gwriting_) {
             if (cmd_it->IsGwrite()) {
                 PrintGreen("Get gwrite ready command");
-                Command ready_cmd = channel_state_.GetReadyCommand(*cmd_it, clk_);
+                Command ready_cmd =
+                    channel_state_.GetReadyCommand(*cmd_it, clk_);
                 return ready_cmd;
             } else {
                 // should wait for gwrite complete
@@ -287,28 +311,33 @@ Command NeuPIMSCommandQueue::GetReadyInPIMQueue(std::pair<int, int> refresh_slac
             }
         } else if (cmd_it->IsGwrite()) {
             // ready for GWRITE
-            bool can_issue_gwrite = CanMeetRefreshDeadline(cmd_it, refresh_slack);
+            bool can_issue_gwrite =
+                CanMeetRefreshDeadline(cmd_it, refresh_slack);
             if (can_issue_gwrite) {
                 PrintGreen("is_gwriting ON");
                 is_gwriting_ = true;
                 gwrite_target_ = cmd_it->addr;
 
-                Command ready_cmd = channel_state_.GetReadyCommand(*cmd_it, clk_);
+                Command ready_cmd =
+                    channel_state_.GetReadyCommand(*cmd_it, clk_);
                 return ready_cmd;
             } else {
                 skip_pim_ = true;
                 if (channel_id_ == 4)
-                    PrintWarning("cid:", channel_id_, "skip_pim ON", "gwrite//");
+                    PrintWarning("cid:", channel_id_, "skip_pim ON",
+                                 "gwrite//");
                 return Command();
             }
         }
 
         if (channel_id_ == 0 && cmd_it->cmd_type == CommandType::READRES) {
-            PrintInfo("(GetReadyInPIMQueue) survey on cmd:", cmd_it->CommandTypeString());
+            PrintInfo("(GetReadyInPIMQueue) survey on cmd:",
+                      cmd_it->CommandTypeString());
             // PrintQueue(queue);
         }
         if (cmd_it->IsPIMHeader()) {
-            // PrintDebug("(GetReadyInPIMQueue) PIM_HEADER! num_comps:{} num_readres:{}",
+            // PrintDebug("(GetReadyInPIMQueue) PIM_HEADER! num_comps:{}
+            // num_readres:{}",
             //            cmd_it->num_comps, cmd_it->num_readres);
             // ready for GEMV
             bool can_issue_gemv = CanMeetRefreshDeadline(cmd_it, refresh_slack);
@@ -333,10 +362,11 @@ Command NeuPIMSCommandQueue::GetReadyInPIMQueue(std::pair<int, int> refresh_slac
     return Command();
 }
 
-Command NeuPIMSCommandQueue::GetFirstReadyInQueue(CMDQueue &queue,
-                                                  std::pair<int, int> refresh_slack) {
+Command NeuPIMSCommandQueue::GetFirstReadyInQueue(
+    CMDQueue &queue, std::pair<int, int> refresh_slack) {
     // estimation = channel_state_.EstimatePIMOperationLatency
-    // in case of pim header, erase without return, return next pim_cmd & pim_mode on
+    // in case of pim header, erase without return, return next pim_cmd &
+    // pim_mode on
 
     for (auto cmd_it = queue.begin(); cmd_it != queue.end(); cmd_it++) {
         if (reserved_row_for_pim_ == cmd_it->Row()) {
@@ -366,11 +396,12 @@ Command NeuPIMSCommandQueue::GetFirstReadyInQueue(CMDQueue &queue,
 
         if (remain_slack_ > 0 && !pim_queue_.empty()) {
             // PrintQueue(queue);
-            PrintWarning(cmd.CommandTypeString(), "for", cmd_it->CommandTypeString());
+            PrintWarning(cmd.CommandTypeString(), "for",
+                         cmd_it->CommandTypeString());
 
             int cmd_overhead = 0;
             int precharge_to_activate = config_.tRP;
-            int activate_to_read = config_.tRCDRD;
+            // int activate_to_read = config_.tRCDRD;
             int activate_to_write = config_.tRCDWR;
             // int activate_to_gact
             // int activate_to_gwrite
@@ -381,7 +412,8 @@ Command NeuPIMSCommandQueue::GetFirstReadyInQueue(CMDQueue &queue,
                 cmd_overhead = precharge_to_activate + activate_to_write;
                 if (remain_slack_ > cmd_overhead) {
                     remain_slack_ -= precharge_to_activate;
-                    PrintGreen("SELECT DRAM COMMAND!!", cmd.CommandTypeString());
+                    PrintGreen("SELECT DRAM COMMAND!!",
+                               cmd.CommandTypeString());
                     simple_stats_.Increment("num_parallel_prec_cmds");
                     return cmd;
                 } else
@@ -393,7 +425,8 @@ Command NeuPIMSCommandQueue::GetFirstReadyInQueue(CMDQueue &queue,
 
                 if (remain_slack_ > cmd_overhead) {
                     remain_slack_ -= activate_to_write;
-                    PrintGreen("SELECT DRAM COMMAND!!", cmd.CommandTypeString());
+                    PrintGreen("SELECT DRAM COMMAND!!",
+                               cmd.CommandTypeString());
                     simple_stats_.Increment("num_parallel_act_cmds");
                     return cmd;
                 } else
@@ -417,28 +450,32 @@ Command NeuPIMSCommandQueue::GetFirstReadyInQueue(CMDQueue &queue,
 }
 
 void NeuPIMSCommandQueue::EraseRWCommand(const Command &cmd) {
-    auto &queue = GetQueue(cmd.PIMQCommand(), cmd.Rank(), cmd.Bankgroup(), cmd.Bank());
-    bool erase_pim_header = cmd.IsPIMHeader();
+    auto &queue =
+        GetQueue(cmd.PIMQCommand(), cmd.Rank(), cmd.Bankgroup(), cmd.Bank());
+    // bool erase_pim_header = cmd.IsPIMHeader();
     // if (cmd.IsPIMCommand()) {
-    //     PrintInfo("cid:", channel_id_, "clk:", clk_, "Erase!!", cmd.CommandTypeString(),
+    //     PrintInfo("cid:", channel_id_, "clk:", clk_, "Erase!!",
+    //     cmd.CommandTypeString(),
     //                    "addr:", HexString(cmd.hex_addr));
 
     //     PrintQueue(queue);
     // }
     for (auto cmd_it = queue.begin(); cmd_it != queue.end(); cmd_it++) {
-        if (cmd.hex_addr == cmd_it->hex_addr && cmd.cmd_type == cmd_it->cmd_type) {
-            int before_cnt = queue.size(); // remove // this is for debug
+        if (cmd.hex_addr == cmd_it->hex_addr &&
+            cmd.cmd_type == cmd_it->cmd_type) {
+            // int before_cnt = queue.size();  // remove // this is for debug
 
             queue.erase(cmd_it);
             // if (channel_id_ == 0) {
-            //     PrintInfo("(EraseRWCommand) q.size():", before_cnt, "->", queue.size());
-            //     PrintQueue(queue);
+            //     PrintInfo("(EraseRWCommand) q.size():", before_cnt, "->",
+            //     queue.size()); PrintQueue(queue);
             // }
 
             return;
         }
     }
-    PrintError("Cannot find cmd!", cmd.CommandTypeString(), "channel_id:", channel_id_);
+    PrintError("Cannot find cmd!", cmd.CommandTypeString(),
+               "channel_id:", channel_id_);
 }
 
 int NeuPIMSCommandQueue::QueueUsage() const {
@@ -451,19 +488,22 @@ int NeuPIMSCommandQueue::QueueUsage() const {
 
 // gsheo: Read after write dependency check
 // since PIM commands are like read commands from the memory's perspective,
-// no write operations should occur at the same address before a PIM command is executed.
+// no write operations should occur at the same address before a PIM command is
+// executed.
 // -> set isRead = true for pim command
-bool NeuPIMSCommandQueue::HasRWDependency(const CMDIterator &cmd_it, const CMDQueue &queue) const {
+bool NeuPIMSCommandQueue::HasRWDependency(const CMDIterator &cmd_it,
+                                          const CMDQueue &queue) const {
     // Read after write has been checked in controller so we only
     // check write after read here
     for (auto it = queue.begin(); it != cmd_it; it++) {
-        bool is_read = it->IsRead() || it->IsPIMCommand(); // >>> gsheo
-        if (is_read && it->Row() == cmd_it->Row() && it->Column() == cmd_it->Column() &&
-            it->Bank() == cmd_it->Bank() && it->Bankgroup() == cmd_it->Bankgroup()) {
+        bool is_read = it->IsRead() || it->IsPIMCommand();  // >>> gsheo
+        if (is_read && it->Row() == cmd_it->Row() &&
+            it->Column() == cmd_it->Column() && it->Bank() == cmd_it->Bank() &&
+            it->Bankgroup() == cmd_it->Bankgroup()) {
             return true;
         }
     }
     return false;
 }
 
-} // namespace dramsim3
+}  // namespace dramsim3

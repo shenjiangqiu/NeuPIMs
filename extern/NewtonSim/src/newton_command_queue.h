@@ -71,7 +71,7 @@ class NewtonCommandQueue {
     int queue_idx_;
     uint64_t clk_;
 
-    int channel_id_;
+    unsigned channel_id_;
     int pim_q_idx_;
     int remain_slack_ = 0;
     int reserved_row_for_pim_ = -1;

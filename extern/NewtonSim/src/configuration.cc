@@ -55,7 +55,7 @@ uint64_t Config::EncodePIMHeader(int channel, int row, bool for_gwrite, int num_
 }
 
 Address Config::AddressMapping(uint64_t hex_addr) const {
-    uint64_t origin_addr = hex_addr; // gsheo: for debug
+    // uint64_t origin_addr = hex_addr; // gsheo: for debug
 
     hex_addr >>= shift_bits;
     int channel = (hex_addr >> ch_pos) & ch_mask;

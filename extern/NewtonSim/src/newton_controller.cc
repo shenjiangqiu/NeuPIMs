@@ -32,7 +32,7 @@ std::pair<uint64_t, TransactionType> NewtonController::ReturnDoneTrans(uint64_t 
     auto it = return_queue_.begin();
     while (it != return_queue_.end()) {
         if (clk >= it->complete_cycle) {
-            TransactionType type = TransactionType::SIZE;
+            // TransactionType type = TransactionType::SIZE;
 
             if (it->is_write()) {
                 simple_stats_.Increment("num_writes_done");
@@ -209,7 +209,7 @@ void NewtonController::ClockTick() {
 
 bool NewtonController::WillAcceptTransaction(uint64_t hex_addr, TransactionType req_type) {
     bool is_write = req_type == TransactionType::WRITE;
-    bool is_read = req_type == TransactionType::READ;
+    // bool is_read = req_type == TransactionType::READ;
 
     if (is_write) {
         return write_buffer_.size() < write_buffer_.capacity();
@@ -291,7 +291,7 @@ void NewtonController::ScheduleTransaction() {
     }
 
     // in Newton, only after read-write complete, execute PIM
-    int pim_q_size = pim_cmd_queue_.GetPIMQueueSize();
+    // int pim_q_size = pim_cmd_queue_.GetPIMQueueSize();
 
     enum QueueToSchedule { READ_Q, WRITE_BUFFER, SIZE };
     QueueToSchedule queue_to_schedule = SIZE;
@@ -319,7 +319,7 @@ void NewtonController::ScheduleTransaction() {
                     // if there is read transaction (it->addr),
                     // first push it
                     if (read_queue_.size() > 0) {
-                        for (int i = 0; i < read_queue_.size(); i++) {
+                        for (unsigned i = 0; i < read_queue_.size(); i++) {
                             if (read_queue_[i].addr == it->addr) {
                                 // PrintDebug("(ScheduleTransaction) R->W dependency:!", it->addr);
                                 rw_dependency_lock_ = true;

@@ -1,0 +1,3 @@
+- [ ] clarify the attention distribution method
+- [ ] test the rumtime of att and proj
+- [ ] get the confliction of the array read of pim and normal

@@ -1,9 +1,10 @@
 #include "channel_state.h"
 
 namespace dramsim3 {
-ChannelState::ChannelState(int channel_id, const Config &config, const Timing &timing)
-    : channel_id_(channel_id),
-      rank_idle_cycles(config.ranks, 0),
+ChannelState::ChannelState(int channel_id, const Config &config,
+                           const Timing &timing)
+    : rank_idle_cycles(config.ranks, 0),
+      channel_id_(channel_id),
       config_(config),
       timing_(timing),
       rank_is_sref_(config.ranks, false),
@@ -16,8 +17,8 @@ ChannelState::ChannelState(int channel_id, const Config &config, const Timing &t
         auto rank_states = std::vector<std::vector<BankState>>();
         rank_states.reserve(config_.bankgroups);
         for (auto j = 0; j < config_.bankgroups; j++) {
-            auto bg_states = std::vector<BankState>(config_.banks_per_group,
-                                                    BankState(config_.enable_dual_buffer));
+            auto bg_states = std::vector<BankState>(
+                config_.banks_per_group, BankState(config_.enable_dual_buffer));
             rank_states.push_back(bg_states);
         }
         bank_states_.push_back(rank_states);
@@ -53,20 +54,23 @@ bool ChannelState::IsRWPendingOnRef(const Command &cmd) const {
     int rank = cmd.Rank();
     int bankgroup = cmd.Bankgroup();
     int bank = cmd.Bank();
-    return (IsRowOpen(rank, bankgroup, bank) && RowHitCount(rank, bankgroup, bank) == 0 &&
+    return (IsRowOpen(rank, bankgroup, bank) &&
+            RowHitCount(rank, bankgroup, bank) == 0 &&
             bank_states_[rank][bankgroup][bank].OpenRow() == cmd.Row());
 }
 
 /* gsheo: BankNeedRefresh is not used */
 // refresh_policy: hbm, ddr4 - RANK_LEVEL_STAGGERED
 // -> BankNeedRef(~, ~, ~, true) is not used
-void ChannelState::BankNeedRefresh(int rank, int bankgroup, int bank, bool need) {
+void ChannelState::BankNeedRefresh(int rank, int bankgroup, int bank,
+                                   bool need) {
     if (need) {
         Address addr = Address(-1, rank, bankgroup, bank, -1, -1);
         refresh_q_.emplace_back(CommandType::REFRESH_BANK, addr, -1);
     } else {
         for (auto it = refresh_q_.begin(); it != refresh_q_.end(); it++) {
-            if (it->Rank() == rank && it->Bankgroup() == bankgroup && it->Bank() == bank) {
+            if (it->Rank() == rank && it->Bankgroup() == bankgroup &&
+                it->Bank() == bank) {
                 refresh_q_.erase(it);
                 break;
             }
@@ -82,7 +86,8 @@ void ChannelState::RankNeedRefresh(int rank, bool need) {
         Address addr = Address(-1, rank, -1, -1, -1, -1);
         refresh_q_.emplace_back(CommandType::REFRESH, addr, -1);
     } else {
-        // Remove corresponding Rank target refresh command while rotating refresh_queue
+        // Remove corresponding Rank target refresh command while rotating
+        // refresh_queue
         for (auto it = refresh_q_.begin(); it != refresh_q_.end(); it++) {
             if (it->Rank() == rank) {
                 refresh_q_.erase(it);
@@ -113,6 +118,7 @@ bool ChannelState::IsOpenTargetBanks(const Command &cmd) {
 
         return target_row == bank_state.OpenRow();
     }
+    throw std::runtime_error("Invalid command type");
 }
 
 bool ChannelState::CheckAllBanksSamePIMOpenRow(int reserved_row) {
@@ -129,11 +135,12 @@ bool ChannelState::CheckAllBanksSamePIMOpenRow(int reserved_row) {
                 cur_pim = bank_states_[i][j][k].PIMOpenRow();
                 if (i + j + k == 0) pim_open_row = cur_pim;
                 if (config_.enable_dual_buffer && cur == reserved_row) {
-                    PrintError("Reserved row already opened in dram row buffer!");
+                    PrintError(
+                        "Reserved row already opened in dram row buffer!");
                 } else if (pim_open_row != cur_pim) {
                     PrintAllBankStates();
-                    PrintError("PIM open row mismatch, pim_open_row:", pim_open_row,
-                               ", cur_pim_open:", cur_pim);
+                    PrintError("PIM open row mismatch, pim_open_row:",
+                               pim_open_row, ", cur_pim_open:", cur_pim);
                     return false;
                 } else
                     continue;
@@ -151,10 +158,12 @@ Command ChannelState::GetReadyCommand(const Command &cmd, uint64_t clk) const {
     if (cmd.IsPIMHeader() && cmd.for_gwrite) {
         PrintError("PIM header for gwrite is deprecated!");
     }
-    if (cmd.IsChannelCMD() || cmd.IsPIMHeader()) {  // P_HEADER, COMP, READRES, COMPS_READRES
+    if (cmd.IsChannelCMD() ||
+        cmd.IsPIMHeader()) {  // P_HEADER, COMP, READRES, COMPS_READRES
         int num_ready = 0;
-        int num_total_banks = config_.ranks * config_.bankgroups * config_.banks_per_group;
-        int num_ready_gact = 0;
+        int num_total_banks =
+            config_.ranks * config_.bankgroups * config_.banks_per_group;
+        // int num_ready_gact = 0;
         PrintAllBankStates();
         for (auto i = 0; i < config_.ranks; i++) {
             for (auto j = 0; j < config_.bankgroups; j++) {
@@ -163,14 +172,17 @@ Command ChannelState::GetReadyCommand(const Command &cmd, uint64_t clk) const {
 
                     if (!ready_cmd.IsValid()) continue;
 
-                    // PrintInfo("(GetReadyCommand)", cmd.CommandTypeString(), "for",
+                    // PrintInfo("(GetReadyCommand)", cmd.CommandTypeString(),
+                    // "for",
                     //           ready_cmd.CommandTypeString());
 
                     if (ready_cmd.cmd_type != cmd.cmd_type) {
-                        if (cmd.IsChannelCMD() && ready_cmd.cmd_type != CommandType::G_ACT) {
+                        if (cmd.IsChannelCMD() &&
+                            ready_cmd.cmd_type != CommandType::G_ACT) {
                             PrintError("(GetReadyCommand) Must be G_ACT");
                         }
-                        Address new_addr = Address(-1, i, j, k, ready_cmd.Row(), -1);
+                        Address new_addr =
+                            Address(-1, i, j, k, ready_cmd.Row(), -1);
                         ready_cmd.addr = new_addr;
 
                         return ready_cmd;
@@ -191,7 +203,8 @@ Command ChannelState::GetReadyCommand(const Command &cmd, uint64_t clk) const {
         int num_ready = 0;
         for (auto j = 0; j < config_.bankgroups; j++) {
             for (auto k = 0; k < config_.banks_per_group; k++) {
-                ready_cmd = bank_states_[cmd.Rank()][j][k].GetReadyCommand(cmd, clk);
+                ready_cmd =
+                    bank_states_[cmd.Rank()][j][k].GetReadyCommand(cmd, clk);
                 if (!ready_cmd.IsValid()) {  // Not ready
                     continue;
                 }
@@ -215,28 +228,34 @@ Command ChannelState::GetReadyCommand(const Command &cmd, uint64_t clk) const {
         // PrintDebug("get ready_cmd for G_ACT");
 
         for (auto k = 0; k < config_.banks_per_group; k++) {
-            ready_cmd = bank_states_[cmd.Rank()][cmd.Bankgroup()][k].GetReadyCommand(cmd, clk);
+            ready_cmd =
+                bank_states_[cmd.Rank()][cmd.Bankgroup()][k].GetReadyCommand(
+                    cmd, clk);
             if (!ready_cmd.IsValid()) {  // Not ready
                 // std::cout << "not ready" << std::endl;
                 continue;
             }
             if (ready_cmd.cmd_type != cmd.cmd_type) {
                 if (ready_cmd.IsPIMPrecharge()) {
-                    Address new_addr = Address(-1, cmd.Rank(), cmd.Bankgroup(), k, -1, -1);
+                    Address new_addr =
+                        Address(-1, cmd.Rank(), cmd.Bankgroup(), k, -1, -1);
                     ready_cmd.addr = new_addr;
                     PrintInfo("PIM precharge");
                     return ready_cmd;
                 } else {
                     if (!config_.enable_dual_buffer &&
                         ready_cmd.cmd_type == CommandType::PRECHARGE) {
-                        Address new_addr = Address(-1, cmd.Rank(), cmd.Bankgroup(), k, -1, -1);
+                        Address new_addr =
+                            Address(-1, cmd.Rank(), cmd.Bankgroup(), k, -1, -1);
                         ready_cmd.addr = new_addr;
                         return ready_cmd;
                     }
-                    PrintError("Invalid command type", ready_cmd.CommandTypeString());
+                    PrintError("Invalid command type",
+                               ready_cmd.CommandTypeString());
                 }
             } else {
-                if (!ActivationWindowOk(ready_cmd.Rank(), clk)) return Command();
+                if (!ActivationWindowOk(ready_cmd.Rank(), clk))
+                    return Command();
                 num_ready++;
             }
         }
@@ -254,7 +273,8 @@ Command ChannelState::GetReadyCommand(const Command &cmd, uint64_t clk) const {
         }
     } else {
         // GWRITE, READ, WRITE, PWRITE
-        ready_cmd = bank_states_[cmd.Rank()][cmd.Bankgroup()][cmd.Bank()].GetReadyCommand(cmd, clk);
+        ready_cmd = bank_states_[cmd.Rank()][cmd.Bankgroup()][cmd.Bank()]
+                        .GetReadyCommand(cmd, clk);
 
         if (!ready_cmd.IsValid()) {
             return Command();
@@ -268,9 +288,9 @@ Command ChannelState::GetReadyCommand(const Command &cmd, uint64_t clk) const {
     }
 }
 
-int ChannelState::EstimatePIMOperationLatency(const Command &cmd, uint64_t clk) {
-    bool pheader_for_gemv = cmd.IsPIMHeader() && !cmd.for_gwrite;
-    assert(cmd.IsGwrite() || pheader_for_gemv);
+int ChannelState::EstimatePIMOperationLatency(const Command &cmd,
+                                              uint64_t clk) {
+    assert(cmd.IsGwrite() || (cmd.IsPIMHeader() && !cmd.for_gwrite));
 
     int target_row = cmd.Row();
 
@@ -278,7 +298,8 @@ int ChannelState::EstimatePIMOperationLatency(const Command &cmd, uint64_t clk) 
     int latency = 0;
     if (cmd.IsGwrite()) {
         if (IsRowOpen(cmd.Rank(), cmd.Bankgroup(), cmd.Bank())) {
-            if (OpenRow(cmd.Rank(), cmd.Bankgroup(), cmd.Bank()) != target_row) {
+            if (OpenRow(cmd.Rank(), cmd.Bankgroup(), cmd.Bank()) !=
+                target_row) {
                 latency += precharge_latency;
                 latency += config_.tRP        // precharge_to_act
                            + config_.tRCDRD;  // act_to_read
@@ -324,7 +345,8 @@ int ChannelState::EstimatePIMOperationLatency(const Command &cmd, uint64_t clk) 
         latency += config_.tFAW * (num_gact / 2 - 1) + config_.tRCDRD;
 
         latency += std::max(config_.burst_cycle, config_.tCCD_S) * num_comps;
-        latency += std::max(config_.burst_cycle, config_.tCCD_L) * (num_readres - 1);
+        latency +=
+            std::max(config_.burst_cycle, config_.tCCD_L) * (num_readres - 1);
         return latency;
     }
 }
@@ -333,8 +355,8 @@ void ChannelState::PrintAllBankStates() const {
     if (!LOGGING_CONFIG::PIMSIM_LOGGING_DEBUG) return;
     if (channel_id_ != 0) return;
     std::cout << std::endl
-              << ColorString(Color::GREEN) << "==== PIM States (ch:" << channel_id_
-              << ") ====" << std::endl;
+              << ColorString(Color::GREEN)
+              << "==== PIM States (ch:" << channel_id_ << ") ====" << std::endl;
 
     for (auto j = 0; j < config_.bankgroups; j++) {
         std::cout << "[BankGroup " << j << "] ";
@@ -349,7 +371,8 @@ void ChannelState::PrintAllBankStates() const {
         }
         std::cout << std::endl;
     }
-    std::cout << "===============" << ColorString(Color::RESET) << std::endl << std::endl;
+    std::cout << "===============" << ColorString(Color::RESET) << std::endl
+              << std::endl;
 }
 
 void ChannelState::UpdateState(const Command &cmd) {
@@ -412,41 +435,65 @@ void ChannelState::UpdateTiming(const Command &cmd, uint64_t clk) {
         case CommandType::PWRITE:
             // todo - simulator speed? - Speciazlize which of the below
             // functions to call depending on the command type  Same Bank
-            UpdateSameBankTiming(cmd.addr, timing_.same_bank[static_cast<int>(cmd.cmd_type)], clk);
+            UpdateSameBankTiming(
+                cmd.addr, timing_.same_bank[static_cast<int>(cmd.cmd_type)],
+                clk);
 
             // Same Bankgroup other banks
             UpdateOtherBanksSameBankgroupTiming(
-                cmd.addr, timing_.other_banks_same_bankgroup[static_cast<int>(cmd.cmd_type)], clk);
+                cmd.addr,
+                timing_
+                    .other_banks_same_bankgroup[static_cast<int>(cmd.cmd_type)],
+                clk);
 
             // Other bankgroups
             UpdateOtherBankgroupsSameRankTiming(
-                cmd.addr, timing_.other_bankgroups_same_rank[static_cast<int>(cmd.cmd_type)], clk);
+                cmd.addr,
+                timing_
+                    .other_bankgroups_same_rank[static_cast<int>(cmd.cmd_type)],
+                clk);
 
             // Other ranks
-            UpdateOtherRanksTiming(cmd.addr, timing_.other_ranks[static_cast<int>(cmd.cmd_type)],
-                                   clk);
+            UpdateOtherRanksTiming(
+                cmd.addr, timing_.other_ranks[static_cast<int>(cmd.cmd_type)],
+                clk);
             break;
         case CommandType::REFRESH:
         case CommandType::SREF_ENTER:
         case CommandType::SREF_EXIT:
-            UpdateSameRankTiming(cmd.addr, timing_.same_rank[static_cast<int>(cmd.cmd_type)], clk);
+            UpdateSameRankTiming(
+                cmd.addr, timing_.same_rank[static_cast<int>(cmd.cmd_type)],
+                clk);
             break;
             // >>> gsheo
         case CommandType::GWRITE:
             // Same Bankgroup other banks
             UpdateOtherBanksSameBankgroupTiming(
-                cmd.addr, timing_.other_banks_same_bankgroup[static_cast<int>(cmd.cmd_type)], clk);
+                cmd.addr,
+                timing_
+                    .other_banks_same_bankgroup[static_cast<int>(cmd.cmd_type)],
+                clk);
 
             // Other bankgroups
             UpdateOtherBankgroupsSameRankTiming(
-                cmd.addr, timing_.other_bankgroups_same_rank[static_cast<int>(cmd.cmd_type)], clk);
+                cmd.addr,
+                timing_
+                    .other_bankgroups_same_rank[static_cast<int>(cmd.cmd_type)],
+                clk);
         case CommandType::PIM_PRECHARGE:
-            UpdateSameBankTiming(cmd.addr, timing_.same_bank[static_cast<int>(cmd.cmd_type)], clk);
+            UpdateSameBankTiming(
+                cmd.addr, timing_.same_bank[static_cast<int>(cmd.cmd_type)],
+                clk);
             break;
         case CommandType::G_ACT:
             UpdateSameBankgroupTiming(
-                cmd.addr, timing_.other_banks_same_bankgroup[static_cast<int>(cmd.cmd_type)], clk);
-            UpdateSameRankTiming(cmd.addr, timing_.same_rank[static_cast<int>(cmd.cmd_type)], clk);
+                cmd.addr,
+                timing_
+                    .other_banks_same_bankgroup[static_cast<int>(cmd.cmd_type)],
+                clk);
+            UpdateSameRankTiming(
+                cmd.addr, timing_.same_rank[static_cast<int>(cmd.cmd_type)],
+                clk);
             break;
         // <<< gsheo
         case CommandType::COMP:
@@ -454,24 +501,31 @@ void ChannelState::UpdateTiming(const Command &cmd, uint64_t clk) {
             // std::cout << "rank:" << cmd.addr.rank
             //           << "bankgroup:" << cmd.addr.bankgroup
             //           << "bank:" << cmd.addr.bank << std::endl;
-            UpdateTimingForPIM(cmd, timing_.same_rank[static_cast<int>(cmd.cmd_type)], clk);
+            UpdateTimingForPIM(
+                cmd, timing_.same_rank[static_cast<int>(cmd.cmd_type)], clk);
             for (int i = 0; i < config_.ranks; i++) {
                 Address addr = Address(-1, i, -1, -1, -1, -1);
-                UpdateSameRankTiming(addr, timing_.same_rank[static_cast<int>(cmd.cmd_type)], clk);
+                UpdateSameRankTiming(
+                    addr, timing_.same_rank[static_cast<int>(cmd.cmd_type)],
+                    clk);
             }
             break;
         case CommandType::READRES:
             for (int i = 0; i < config_.ranks; i++) {
                 Address addr = Address(-1, i, -1, -1, -1, -1);
                 // same_rank, other_ranks
-                UpdateSameRankTiming(addr, timing_.same_rank[static_cast<int>(cmd.cmd_type)], clk);
+                UpdateSameRankTiming(
+                    addr, timing_.same_rank[static_cast<int>(cmd.cmd_type)],
+                    clk);
                 // Other ranks
-                UpdateOtherRanksTiming(addr, timing_.other_ranks[static_cast<int>(cmd.cmd_type)],
-                                       clk);
+                UpdateOtherRanksTiming(
+                    addr, timing_.other_ranks[static_cast<int>(cmd.cmd_type)],
+                    clk);
             }
             break;
         case CommandType::COMPS_READRES:
-            UpdateChannelTiming(cmd, timing_.same_rank[static_cast<int>(cmd.cmd_type)], clk);
+            UpdateChannelTiming(
+                cmd, timing_.same_rank[static_cast<int>(cmd.cmd_type)], clk);
             break;
         default:
             AbruptExit(__FILE__, __LINE__);
@@ -482,13 +536,15 @@ void ChannelState::UpdateTiming(const Command &cmd, uint64_t clk) {
 }
 
 void ChannelState::UpdateChannelTiming(
-    const Command &cmd, const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
+    const Command &cmd,
+    const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
     uint64_t clk) {
     int comp_to_comp = std::max(config_.burst_cycle, config_.tCCD_S);
     int num_comps = std::max(cmd.num_comps, 6);
     int comps_readres_delay = comp_to_comp * (num_comps + 1);
     // adder tree filling time
-    // PrintImportant("(UpdateChannelTiming) time:", clk + comps_readres_delay, "clk:", clk);
+    // PrintImportant("(UpdateChannelTiming) time:", clk + comps_readres_delay,
+    // "clk:", clk);
 
     for (auto i = 0; i < config_.ranks; i++) {
         for (auto j = 0; j < config_.bankgroups; j++) {
@@ -496,44 +552,49 @@ void ChannelState::UpdateChannelTiming(
                 BankState &cur_bank_state = bank_states_[i][j][k];
 
                 for (auto cmd_timing : cmd_timing_list) {
-                    cur_bank_state.UpdateTiming(cmd_timing.first, clk + cmd_timing.second);
+                    cur_bank_state.UpdateTiming(cmd_timing.first,
+                                                clk + cmd_timing.second);
                 }
-                cur_bank_state.UpdateTiming(CommandType::COMPS_READRES, clk + comps_readres_delay);
+                cur_bank_state.UpdateTiming(CommandType::COMPS_READRES,
+                                            clk + comps_readres_delay);
             }
         }
     }
 }
 
 void ChannelState::UpdateSameBankTiming(
-    const Address &addr, const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
+    const Address &addr,
+    const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
     uint64_t clk) {
     for (auto cmd_timing : cmd_timing_list) {
-        bank_states_[addr.rank][addr.bankgroup][addr.bank].UpdateTiming(cmd_timing.first,
-                                                                        clk + cmd_timing.second);
+        bank_states_[addr.rank][addr.bankgroup][addr.bank].UpdateTiming(
+            cmd_timing.first, clk + cmd_timing.second);
     }
     return;
 }
 
 void ChannelState::UpdateSameBankgroupTiming(
-    const Address &addr, const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
+    const Address &addr,
+    const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
     uint64_t clk) {
     for (auto k = 0; k < config_.banks_per_group; k++) {
         for (auto cmd_timing : cmd_timing_list) {
-            bank_states_[addr.rank][addr.bankgroup][k].UpdateTiming(cmd_timing.first,
-                                                                    clk + cmd_timing.second);
+            bank_states_[addr.rank][addr.bankgroup][k].UpdateTiming(
+                cmd_timing.first, clk + cmd_timing.second);
         }
     }
     return;
 }
 
 void ChannelState::UpdateOtherBanksSameBankgroupTiming(
-    const Address &addr, const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
+    const Address &addr,
+    const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
     uint64_t clk) {
     for (auto k = 0; k < config_.banks_per_group; k++) {
         if (k != addr.bank) {
             for (auto cmd_timing : cmd_timing_list) {
-                bank_states_[addr.rank][addr.bankgroup][k].UpdateTiming(cmd_timing.first,
-                                                                        clk + cmd_timing.second);
+                bank_states_[addr.rank][addr.bankgroup][k].UpdateTiming(
+                    cmd_timing.first, clk + cmd_timing.second);
             }
         }
     }
@@ -541,14 +602,15 @@ void ChannelState::UpdateOtherBanksSameBankgroupTiming(
 }
 
 void ChannelState::UpdateOtherBankgroupsSameRankTiming(
-    const Address &addr, const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
+    const Address &addr,
+    const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
     uint64_t clk) {
     for (auto j = 0; j < config_.bankgroups; j++) {
         if (j != addr.bankgroup) {
             for (auto k = 0; k < config_.banks_per_group; k++) {
                 for (auto cmd_timing : cmd_timing_list) {
-                    bank_states_[addr.rank][j][k].UpdateTiming(cmd_timing.first,
-                                                               clk + cmd_timing.second);
+                    bank_states_[addr.rank][j][k].UpdateTiming(
+                        cmd_timing.first, clk + cmd_timing.second);
                 }
             }
         }
@@ -557,15 +619,16 @@ void ChannelState::UpdateOtherBankgroupsSameRankTiming(
 }
 
 void ChannelState::UpdateOtherRanksTiming(
-    const Address &addr, const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
+    const Address &addr,
+    const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
     uint64_t clk) {
     for (auto i = 0; i < config_.ranks; i++) {
         if (i != addr.rank) {
             for (auto j = 0; j < config_.bankgroups; j++) {
                 for (auto k = 0; k < config_.banks_per_group; k++) {
                     for (auto cmd_timing : cmd_timing_list) {
-                        bank_states_[i][j][k].UpdateTiming(cmd_timing.first,
-                                                           clk + cmd_timing.second);
+                        bank_states_[i][j][k].UpdateTiming(
+                            cmd_timing.first, clk + cmd_timing.second);
                     }
                 }
             }
@@ -576,7 +639,8 @@ void ChannelState::UpdateOtherRanksTiming(
 
 // Now use for only COMP
 void ChannelState::UpdateTimingForPIM(
-    const Command &cmd, const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
+    const Command &cmd,
+    const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
     uint64_t clk) {
     int pipeline_filling_time = config_.tCCD_S * 6;
 
@@ -586,10 +650,12 @@ void ChannelState::UpdateTimingForPIM(
                 BankState &cur_bank_state = bank_states_[i][j][k];
                 if (cmd.cmd_type == CommandType::COMP && comp_overhead_flag_) {
                     comp_overhead_flag_ = false;
-                    cur_bank_state.UpdateTiming(CommandType::READRES, clk + pipeline_filling_time);
+                    cur_bank_state.UpdateTiming(CommandType::READRES,
+                                                clk + pipeline_filling_time);
                 }
                 for (auto cmd_timing : cmd_timing_list) {
-                    cur_bank_state.UpdateTiming(cmd_timing.first, clk + cmd_timing.second);
+                    cur_bank_state.UpdateTiming(cmd_timing.first,
+                                                clk + cmd_timing.second);
                 }
             }
         }
@@ -598,7 +664,8 @@ void ChannelState::UpdateTimingForPIM(
 }
 
 void ChannelState::UpdateSameRankTiming(
-    const Address &addr, const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
+    const Address &addr,
+    const std::vector<std::pair<CommandType, int>> &cmd_timing_list,
     uint64_t clk) {
     for (auto j = 0; j < config_.bankgroups; j++) {
         for (auto k = 0; k < config_.banks_per_group; k++) {
@@ -608,8 +675,8 @@ void ChannelState::UpdateSameRankTiming(
                 //     std::cout << clk << " added:" << cmd_timing.second
                 //               << std::endl;
                 // }
-                bank_states_[addr.rank][j][k].UpdateTiming(cmd_timing.first,
-                                                           clk + cmd_timing.second);
+                bank_states_[addr.rank][j][k].UpdateTiming(
+                    cmd_timing.first, clk + cmd_timing.second);
             }
         }
     }
@@ -639,7 +706,8 @@ void ChannelState::UpdateActivationTimes(int rank, uint64_t curr_time) {
     }
     four_aw_[rank].push_back(curr_time + config_.tFAW);
     if (config_.IsGDDR()) {
-        if (!thirty_two_aw_[rank].empty() && curr_time >= thirty_two_aw_[rank][0]) {
+        if (!thirty_two_aw_[rank].empty() &&
+            curr_time >= thirty_two_aw_[rank][0]) {
             thirty_two_aw_[rank].erase(thirty_two_aw_[rank].begin());
         }
         thirty_two_aw_[rank].push_back(curr_time + config_.t32AW);
@@ -659,7 +727,8 @@ bool ChannelState::IsFAWReady(int rank, uint64_t curr_time) const {
 // GDDR only
 bool ChannelState::Is32AWReady(int rank, uint64_t curr_time) const {
     if (!thirty_two_aw_[rank].empty()) {
-        if (curr_time < thirty_two_aw_[rank][0] && thirty_two_aw_[rank].size() >= 32) {
+        if (curr_time < thirty_two_aw_[rank][0] &&
+            thirty_two_aw_[rank].size() >= 32) {
             return false;
         }
     }

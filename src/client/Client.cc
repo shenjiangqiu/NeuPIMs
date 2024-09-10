@@ -61,15 +61,15 @@ void Client::cycle() {
         uint32_t input_size = input_output_size.first;
         uint32_t output_size = 1;  // input_output_size.second;  // 1;
         uint32_t channel = input_output_size.second;
-        std::shared_ptr<InferRequest> request =
-            std::make_shared<InferRequest>(InferRequest{.id = rid,
-                                                        .arrival_cycle = _cycles,
-                                                        .completed_cycle = 0,
-                                                        .input_size = input_size,
-                                                        .output_size = output_size,
-                                                        .is_initiated = false,
-                                                        .generated = 0,
-                                                        .channel = channel});
+        std::shared_ptr<InferRequest> request = std::make_shared<InferRequest>(
+            InferRequest{.id = rid,
+                         .arrival_cycle = _cycles,
+                         .completed_cycle = 0,
+                         .input_size = input_size,
+                         .output_size = output_size,
+                         .is_initiated = false,
+                         .generated = 0,
+                         .channel = channel});
         _waiting_queue.push(request);
 
         _issued_cnt++;
@@ -82,8 +82,10 @@ void Client::cycle() {
         _need_wait_cycles = 0;  // _distribution(_gen);
         spdlog::info("xyz");
 
-        spdlog::info("Client Request Departure!! now:{} next wait: {}", _cycles, _need_wait_cycles);
-        spdlog::info("Request #{}, input size:{}, output size:{}", rid, input_size, output_size);
+        spdlog::info("Client Request Departure!! now:{} next wait: {}", _cycles,
+                     _need_wait_cycles);
+        spdlog::info("Request #{}, input size:{}, output size:{}", rid,
+                     input_size, output_size);
     }
 
     _cycles++;

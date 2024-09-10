@@ -169,6 +169,7 @@ std::vector<addr_type> NPUTensor::get_row_addrs(uint32_t row_idx) {
             ->get_row_addrs(row_idx % l);
     }
     ast(0);
+    assert(0);
 }
 
 std::vector<Ptr<NPUTensor>> NPUTensor::split_by_row(std::vector<uint32_t> row_dims) {

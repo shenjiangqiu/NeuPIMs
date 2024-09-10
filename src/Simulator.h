@@ -59,9 +59,9 @@ class Simulator {
 
     struct StageStat {
         Stage stage;
-        uint32_t done_cycle;
-        uint32_t pim_cycles;
-        uint32_t npu_cycles;
+        uint64_t done_cycle;
+        uint64_t pim_cycles;
+        uint64_t npu_cycles;
         double mem_bw_util;
     };
 

@@ -61,7 +61,7 @@ class NeuPIMSCommandQueue {
     // Refresh related data structures
     std::unordered_set<int> ref_q_indices_;
     bool is_in_ref_;
-    bool is_pim_mode_;
+    // bool is_pim_mode_;
     bool skip_pim_;
 
     int num_queues_;
@@ -70,7 +70,7 @@ class NeuPIMSCommandQueue {
     int queue_idx_;
     uint64_t clk_;
 
-    int channel_id_;
+    unsigned channel_id_;
     int remain_slack_ = 0;
     int reserved_row_for_pim_ = -1;
 

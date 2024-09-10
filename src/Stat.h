@@ -44,7 +44,7 @@ typedef struct NPUStat {
     }
 
     std::string get_by_enum(StatType stat_type) {
-        uint64_t core_cycle = Config::global_config.core_freq * 1000000;  // Mhz
+        // uint64_t core_cycle = Config::global_config.core_freq * 1000000;  // Mhz
 
         switch (stat_type) {
             case StatType::StartCycle:
