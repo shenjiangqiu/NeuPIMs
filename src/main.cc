@@ -1,15 +1,21 @@
+#include <bindings.h>
+
 #include "Simulator.h"
 #include "allocator/AddressAllocator.h"
 #include "helper/CommandLineParser.h"
 #include "operations/Operation.h"
-#include <bindings.h>
 namespace po = boost::program_options;
 
 int main(int argc, char **argv) {
     // parse command line argumnet
     init_logger(LogLevel::Info);
+    // init_settings();
+    // auto v = get_settings();
+    // spdlog::info("fast_read: {}", v->fast_read);
 
     CommandLineParser cmd_parser = CommandLineParser();
+    cmd_parser.add_command_line_option<std::string>("sjqconfig",
+                                                    "sjq config file");
     cmd_parser.add_command_line_option<std::string>(
         "config", "Path for hardware configuration file");
     cmd_parser.add_command_line_option<std::string>(
@@ -38,6 +44,14 @@ int main(int argc, char **argv) {
             e.what());
         throw(e);
     }
+    std::string sjq_config_path;
+    cmd_parser.set_if_defined("sjqconfig", &sjq_config_path);
+    if (!sjq_config_path.empty()) {
+        init_settings_with_file(sjq_config_path.c_str());
+    } else {
+        init_settings();
+    }
+
     std::string model_base_path = "./models";
     std::string level = "info";
     cmd_parser.set_if_defined("log_level", &level);

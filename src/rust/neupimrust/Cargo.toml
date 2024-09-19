@@ -5,6 +5,8 @@ edition = "2021"
 [lib]
 crate-type = ["staticlib","rlib"]
 [dependencies]
+serde = { version = "1.0.210", features = ["derive"] }
+toml = "0.8.19"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["fmt", "env-filter"] }
 [build-dependencies]

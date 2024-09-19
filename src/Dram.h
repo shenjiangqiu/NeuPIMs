@@ -10,13 +10,13 @@
 #include "newtonsim/NewtonSim.h"
 
 class Dram {
-   public:
+public:
     virtual bool running() = 0;
     virtual void cycle() = 0;
     virtual bool is_full(uint32_t cid, MemoryAccess *request) = 0;
     virtual void push(uint32_t cid, MemoryAccess *request) = 0;
-    virtual bool is_empty(uint32_t cid) = 0;
-    virtual MemoryAccess *top(uint32_t cid) = 0;
+    virtual bool is_empty(uint32_t cid) const = 0;
+    virtual MemoryAccess *top(uint32_t cid) const = 0;
     virtual void pop(uint32_t cid) = 0;
     virtual uint32_t get_channel_id(MemoryAccess *request) = 0;
     virtual void print_stat() {}
@@ -27,7 +27,7 @@ class Dram {
     virtual void reset_pim_cycle() = 0;
     virtual void log(Stage stage) = 0;
 
-   protected:
+protected:
     SimulationConfig _config;
     uint32_t _n_ch;
     cycle_type _cycles;
@@ -35,21 +35,23 @@ class Dram {
 };
 
 class PIM : public Dram {
-   public:
+public:
     PIM(SimulationConfig config);
 
     virtual bool running() override;
     virtual void cycle() override;
     virtual bool is_full(uint32_t cid, MemoryAccess *request) override;
     virtual void push(uint32_t cid, MemoryAccess *request) override;
-    virtual bool is_empty(uint32_t cid) override;
-    virtual MemoryAccess *top(uint32_t cid) override;
+    virtual bool is_empty(uint32_t cid) const override;
+    virtual MemoryAccess *top(uint32_t cid) const override;
     virtual void pop(uint32_t cid) override;
     virtual uint32_t get_channel_id(MemoryAccess *request) override;
     virtual void print_stat() override;
 
-    uint64_t MakeAddress(int channel, int rank, int bankgroup, int bank, int row, int col);
-    uint64_t EncodePIMHeader(int channel, int row, bool for_gwrite, int num_comps, int num_readres);
+    uint64_t MakeAddress(int channel, int rank, int bankgroup, int bank,
+                         int row, int col);
+    uint64_t EncodePIMHeader(int channel, int row, bool for_gwrite,
+                             int num_comps, int num_readres);
     void update_stat(uint32_t cid);
     void log(Stage stage);
 
@@ -60,6 +62,8 @@ class PIM : public Dram {
     int _burst_cycle;
     std::vector<std::vector<MemoryIOStat>> _stats;
     uint64_t _stat_interval;
+
+    std::vector<std::deque<MemoryAccess *>> fast_ret_queue;
 
     // stats
     uint64_t _stage_cycles;

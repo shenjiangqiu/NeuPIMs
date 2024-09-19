@@ -12,3 +12,6 @@ clean:
     rm -rf ./build
 clean_release:
     rm -rf ./build_release
+
+run_release:
+    bash ./brun_release.sh

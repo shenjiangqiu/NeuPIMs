@@ -2,7 +2,8 @@
 
 NeuPIMSAttend::NeuPIMSAttend(std::string name) : Operation(name) {}
 
-std::vector<Ptr<BTensor>> NeuPIMSAttend::get_outputs(std::vector<Ptr<BTensor>> inputs) {
+std::vector<Ptr<BTensor>> NeuPIMSAttend::get_outputs(
+    std::vector<Ptr<BTensor>> inputs) {
     set_as_parent_tensor(inputs);
 
     _inputs = inputs;
@@ -29,8 +30,8 @@ std::vector<Ptr<BTensor>> NeuPIMSAttend::get_outputs(std::vector<Ptr<BTensor>> i
         auto L = _logits[i];  // [h, l, seq_len] // l must be seq_len or 1
         auto V = _vs[i];      // [h, seq_len, dk]
 
-        // spdlog::info("(NeuPIMSAttend) L: {}, V: {}", L->get_dims(), V->get_dims());
-        // seq_len of L == seq_len of V
+        // spdlog::info("(NeuPIMSAttend) L: {}, V: {}", L->get_dims(),
+        // V->get_dims()); seq_len of L == seq_len of V
         assert(L->get_dims()[2] == V->get_dims()[1]);
         // nh of L == nh of V
         assert(L->get_dims()[0] == V->get_dims()[0]);
@@ -38,8 +39,8 @@ std::vector<Ptr<BTensor>> NeuPIMSAttend::get_outputs(std::vector<Ptr<BTensor>> i
         uint32_t l = L->get_dims()[1];
         std::vector<uint32_t> attend_output_dim{_nh, l, _dk};
 
-        _outputs[i] = std::make_shared<NPUTensor>(_name + "_output", attend_output_dim,
-                                                  NPUTensorBufType::ACT, false);
+        _outputs[i] = std::make_shared<NPUTensor>(
+            _name + "_output", attend_output_dim, NPUTensorBufType::ACT, false);
     }
 
     // todo tiling and instruction initialization.
@@ -93,15 +94,18 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
 
                 for (unsigned dk_idx = 0; dk_idx < _dk; dk_idx++) {
                     for (unsigned seq_idx = 0; seq_idx < seq_len; seq_idx++) {
-                        dram_value_addrs.push_back(
-                            value->get_addr(std::vector<uint32_t>{h_idx, seq_idx, dk_idx}));
+                        dram_value_addrs.push_back(value->get_addr(
+                            std::vector<uint32_t>{h_idx, seq_idx, dk_idx}));
 
-                        for (unsigned sseq_idx = 0; sseq_idx < seq_len; sseq_idx++) {
-                            dram_logit_addrs.push_back(logit->get_addr({h_idx, seq_idx, sseq_idx}));
+                        for (unsigned sseq_idx = 0; sseq_idx < seq_len;
+                             sseq_idx++) {
+                            dram_logit_addrs.push_back(
+                                logit->get_addr({h_idx, seq_idx, sseq_idx}));
                         }
                     }
                 }
-                auto sram_l_entry = allocate_sram_addr(seq_len * seq_len, false);
+                auto sram_l_entry =
+                    allocate_sram_addr(seq_len * seq_len, false);
                 auto sram_v_entry = allocate_sram_addr(seq_len * _dk, false);
                 auto sram_a_entry = allocate_sram_addr(seq_len * _dk, true);
                 // -- load --
@@ -127,7 +131,8 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                     .opcode = Opcode::GEMM,
                     .dest_addr = sram_a_entry.first,
                     .size = sram_a_entry.second,
-                    .src_addrs = std::vector<addr_type>{sram_l_entry.first, sram_v_entry.first},
+                    .src_addrs = std::vector<addr_type>{sram_l_entry.first,
+                                                        sram_v_entry.first},
 
                     .tile_m = _dk,
                     .tile_k = seq_len,
@@ -139,9 +144,10 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                     .opcode = Opcode::MOVOUT,
                     .dest_addr = sram_a_entry.first,
                     .size = sram_a_entry.second,
-                    .src_addrs = std::static_pointer_cast<NPUTensor>(_outputs[i])
-                                     ->_inners[h_idx]
-                                     ->get_all_addrs(),
+                    .src_addrs =
+                        std::static_pointer_cast<NPUTensor>(_outputs[i])
+                            ->_inners[h_idx]
+                            ->get_all_addrs(),
                     .operand_id = _OUTPUT_OPERAND,
                 });
             }
@@ -152,7 +158,8 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
         for (int hi = 0; hi < _nh; hi++) {
             std::map<uint32_t, std::vector<addr_type>> sram_readres_addrs;
             for (int ci = 0; ci < chunks; ci++) {
-                uint64_t logit_row = 0;  // FIXME: decode row index from dram address
+                uint64_t logit_row =
+                    0;  // FIXME: decode row index from dram address
                 uint64_t p_header_addr =
                     AddressConfig::encode_pim_header(ch, logit_row, true, 0, 0);
 
@@ -163,18 +170,21 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                     .opcode = Opcode::PIM_GWRITE,
                     .dest_addr = sram_addr_gw,
                     .size = 0,
-                    .src_addrs = std::vector<addr_type>{p_header_addr},  // FIXME: gwrite addr
+                    .src_addrs =
+                        std::vector<addr_type>{
+                            p_header_addr},  // FIXME: gwrite addr
                     .operand_id = _INPUT_OPERAND,
                 });
 
                 uint32_t num_comps =
                     (ci == chunks - 1 && (seq_len % _page_size) > 0)
-                        ? ceil((double)(seq_len % _page_size) / _datas_per_comp_cmd)
+                        ? ceil((double)(seq_len % _page_size) /
+                               _datas_per_comp_cmd)
                         : _page_size / _datas_per_comp_cmd;
                 uint32_t decoded_num_comps = 1 << LogBase2(num_comps);
 
-                // spdlog::info("num_comps: {}, decoded_num_comps: {}", num_comps,
-                // decoded_num_comps);
+                // spdlog::info("num_comps: {}, decoded_num_comps: {}",
+                // num_comps, decoded_num_comps);
                 if (num_comps > decoded_num_comps) {
                     decoded_num_comps *= 2;
                 }
@@ -182,12 +192,13 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                 assert(num_comps > 0);
 
                 for (int ti = 0; ti < _tiles_per_chunk; ti++) {
-                    auto sram_entry = allocate_sram_addr(_banks_per_channel, false);
+                    auto sram_entry =
+                        allocate_sram_addr(_banks_per_channel, false);
                     addr_type sram_addr = sram_entry.first;
 
                     uint32_t DRAM_row = value->_rows[ti * chunks + ci];
-                    p_header_addr =
-                        AddressConfig::encode_pim_header(ch, DRAM_row, false, decoded_num_comps, 1);
+                    p_header_addr = AddressConfig::encode_pim_header(
+                        ch, DRAM_row, false, decoded_num_comps, 1);
                     // P_HEADER (num_comps, num_readres)
                     tile.instructions.push_back(Instruction{
                         .opcode = Opcode::PIM_HEADER,
@@ -199,7 +210,8 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                     std::string cmds = "P_HEADER ";
 
                     uint64_t dram_addr =
-                        AddressConfig::encode_pim_comps_readres(ch, DRAM_row, num_comps, true);
+                        AddressConfig::encode_pim_comps_readres(
+                            ch, DRAM_row, num_comps, true);
 
                     if (_config.dram_type == DramType::NEWTON) {
                         Instruction comp_inst = Instruction{
@@ -233,8 +245,10 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                         });
                     }
 
-                    if (sram_readres_addrs.find(ti) == sram_readres_addrs.end())  // not exists
-                        sram_readres_addrs[ti] = std::vector<addr_type>{sram_addr};
+                    if (sram_readres_addrs.find(ti) ==
+                        sram_readres_addrs.end())  // not exists
+                        sram_readres_addrs[ti] =
+                            std::vector<addr_type>{sram_addr};
                     else
                         sram_readres_addrs[ti].push_back(sram_addr);
                 }
@@ -243,8 +257,10 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                 for (int ti = 0; ti < _tiles_per_chunk; ++ti) {
                     assert(sram_readres_addrs[ti].size() == chunks);
 
-                    uint32_t column_height = _tiles_per_chunk * _banks_per_channel;
-                    auto sram_acc_entry = allocate_sram_addr(column_height, true);
+                    uint32_t column_height =
+                        _tiles_per_chunk * _banks_per_channel;
+                    auto sram_acc_entry =
+                        allocate_sram_addr(column_height, true);
 
                     tile.instructions.push_back(Instruction{
                         .opcode = Opcode::ADD,
@@ -256,9 +272,10 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                         .opcode = Opcode::MOVOUT,
                         .dest_addr = sram_acc_entry.first,
                         .size = sram_acc_entry.second,
-                        .src_addrs = std::static_pointer_cast<NPUTensor>(_outputs[i])
-                                         ->_inners[hi]
-                                         ->get_all_addrs(),
+                        .src_addrs =
+                            std::static_pointer_cast<NPUTensor>(_outputs[i])
+                                ->_inners[hi]
+                                ->get_all_addrs(),
                         .operand_id = _OUTPUT_OPERAND,
                     });
                 }
@@ -298,7 +315,8 @@ void NeuPIMSAttend::calculate_loops() {
 
         if (q_len == 1) {
             // incremental phase
-            need_sram_for_req = (seq_len + chunks * _dk) * _nh * _config.precision;
+            need_sram_for_req =
+                (seq_len + chunks * _dk) * _nh * _config.precision;
             sram_needs += need_sram_for_req;
         } else {
             // initiation phase
@@ -317,7 +335,8 @@ void NeuPIMSAttend::calculate_loops() {
 
 uint32_t NeuPIMSAttend::sram_size_needed() {
     /// space for gemvadd activation = dk * batch_size?
-    uint32_t need_size = _batch_size * _config.model_n_head * _dk * _config.precision;
+    uint32_t need_size =
+        _batch_size * _config.model_n_head * _dk * _config.precision;
 
     return 0;  // need_size;
 }

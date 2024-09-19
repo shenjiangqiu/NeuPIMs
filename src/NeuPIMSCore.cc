@@ -58,10 +58,11 @@ bool NeuPIMSCore::can_issue(Tile &next_tile) {
     // load and compute should be over at the other side
     for (auto tile : _tiles) {
         if (tile->spad_id == next_spad) {
-            if ((tile->remaining_loads != 0) || (tile->remaining_computes != 0)) {
-                // spdlog::info("issue failed. accum true. spad id {}", tile->spad_id);
-                // std::cout << tile->remaining_loads << "\t" << tile->remaining_computes <<
-                // std::endl;
+            if ((tile->remaining_loads != 0) ||
+                (tile->remaining_computes != 0)) {
+                // spdlog::info("issue failed. accum true. spad id {}",
+                // tile->spad_id); std::cout << tile->remaining_loads << "\t" <<
+                // tile->remaining_computes << std::endl;
                 return false;
             }
         }
@@ -72,14 +73,16 @@ bool NeuPIMSCore::can_issue(Tile &next_tile) {
             if (tile->accum_spad_id == next_acc_spad) {
                 if (tile->remaining_accum_io != 0) {
                     // spdlog::info("issue failed. accum false. acc spad id {}",
-                    // tile->accum_spad_id); std::cout << tile->remaining_accum_io << std::endl;
+                    // tile->accum_spad_id); std::cout <<
+                    // tile->remaining_accum_io << std::endl;
                     return false;
                 }
             }
         }
     }
     // spdlog::info("issue succeeded. accum {}, spad id {}, acc spad id {}",
-    //              next_tile.accum ? "true" : "false", next_spad, next_acc_spad);
+    //              next_tile.accum ? "true" : "false", next_spad,
+    //              next_acc_spad);
     return true;
 }
 
@@ -129,8 +132,10 @@ void NeuPIMSCore::issue(Tile &in_tile) {
         if (inst.opcode == Opcode::PIM_HEADER) {
             assert(0);
             _ld_inst_queue_for_sa.push(inst);
-        } else if (inst.opcode == Opcode::MOVIN || inst.opcode == Opcode::PIM_GWRITE ||
-                   inst.opcode == Opcode::PIM_COMP || inst.opcode == Opcode::PIM_READRES ||
+        } else if (inst.opcode == Opcode::MOVIN ||
+                   inst.opcode == Opcode::PIM_GWRITE ||
+                   inst.opcode == Opcode::PIM_COMP ||
+                   inst.opcode == Opcode::PIM_READRES ||
                    inst.opcode == Opcode::PIM_COMPS_READRES) {
             switch (inst.opcode) {
                 case Opcode::PIM_GWRITE:
@@ -145,15 +150,18 @@ void NeuPIMSCore::issue(Tile &in_tile) {
                 tile->remaining_loads++;
                 _ld_inst_queue_for_sa.push(inst);
             } else {
-                spdlog::info("sram size: {} / sram used: {}", _config.sram_size KB / 2,
+                spdlog::info("sram size: {} / sram used: {}",
+                             _config.sram_size KB / 2,
                              buffer->get_current_size(buffer_id));
-                spdlog::info("instruction destination address {:x}", inst.dest_addr);
+                spdlog::info("instruction destination address {:x}",
+                             inst.dest_addr);
                 spdlog::info("failed to allocate {} on sram.", inst.size);
                 buffer->print_all(buffer_id);
                 /*Invalid state */
                 assert(0);
             }
-        } else if (inst.opcode == Opcode::MOVOUT || inst.opcode == Opcode::MOVOUT_POOL) {
+        } else if (inst.opcode == Opcode::MOVOUT ||
+                   inst.opcode == Opcode::MOVOUT_POOL) {
             tile->remaining_accum_io++;
             _st_inst_queue_for_sa.push(inst);
         } else {
@@ -168,7 +176,6 @@ void NeuPIMSCore::issue(Tile &in_tile) {
 }
 
 void NeuPIMSCore::issue_pim(Tile &in_tile) {
-    
     spdlog::info("pim tile issued {}", in_tile.repr());
     auto tile = std::make_shared<Tile>(in_tile);
     tile->stat = TileStat(_core_cycle);
@@ -207,26 +214,33 @@ void NeuPIMSCore::issue_pim(Tile &in_tile) {
         }
         if (inst.opcode == Opcode::PIM_HEADER) {
             _ld_inst_queue_for_pim.push(inst);
-        } else if (inst.opcode == Opcode::MOVIN || inst.opcode == Opcode::PIM_GWRITE ||
-                   inst.opcode == Opcode::PIM_COMP || inst.opcode == Opcode::PIM_READRES ||
+        } else if (inst.opcode == Opcode::MOVIN ||
+                   inst.opcode == Opcode::PIM_GWRITE ||
+                   inst.opcode == Opcode::PIM_COMP ||
+                   inst.opcode == Opcode::PIM_READRES ||
                    inst.opcode == Opcode::PIM_COMPS_READRES) {
             if (!buffer->check_allocated(inst.dest_addr, buffer_id) &&
                 buffer->check_remain(inst.size, buffer_id)) {
                 tile->remaining_loads++;
                 _ld_inst_queue_for_pim.push(inst);
             } else {
-                spdlog::info("check_allocated: {}",
-                             buffer->check_allocated(inst.dest_addr, buffer_id));
-                spdlog::info("check_remain: {}", buffer->check_remain(inst.size, buffer_id));
-                spdlog::info("sram size: {} / sram used: {}", _config.sram_size KB / 2,
+                spdlog::info(
+                    "check_allocated: {}",
+                    buffer->check_allocated(inst.dest_addr, buffer_id));
+                spdlog::info("check_remain: {}",
+                             buffer->check_remain(inst.size, buffer_id));
+                spdlog::info("sram size: {} / sram used: {}",
+                             _config.sram_size KB / 2,
                              buffer->get_current_size(buffer_id));
-                spdlog::info("instruction destination address {:x}", inst.dest_addr);
+                spdlog::info("instruction destination address {:x}",
+                             inst.dest_addr);
                 spdlog::info("failed to allocate {} on sram.", inst.size);
                 buffer->print_all(buffer_id);
                 /*Invalid state */
                 assert(0);
             }
-        } else if (inst.opcode == Opcode::MOVOUT || inst.opcode == Opcode::MOVOUT_POOL) {
+        } else if (inst.opcode == Opcode::MOVOUT ||
+                   inst.opcode == Opcode::MOVOUT_POOL) {
             tile->remaining_accum_io++;
             _st_inst_queue_for_pim.push(inst);
         } else {
@@ -261,11 +275,12 @@ void NeuPIMSCore::cycle() {
     for (auto tile_it = _tiles.begin(); tile_it != _tiles.end();) {
         auto tile = *tile_it;
         // spdlog::info(
-        //     "tile index: {}, tile remain_accum_io: {}, remain_computes: {}, remain_loads: {}",
-        //     tile_it - _tiles.begin(), tile->remaining_accum_io, tile->remaining_computes,
+        //     "tile index: {}, tile remain_accum_io: {}, remain_computes: {},
+        //     remain_loads: {}", tile_it - _tiles.begin(),
+        //     tile->remaining_accum_io, tile->remaining_computes,
         //     tile->remaining_loads);
-        if ((tile->remaining_accum_io == 0) && (tile->remaining_computes == 0) &&
-            (tile->remaining_loads == 0)) {
+        if ((tile->remaining_accum_io == 0) &&
+            (tile->remaining_computes == 0) && (tile->remaining_loads == 0)) {
             tile->status = Tile::Status::FINISH;
             _finished_tiles.push(tile);
             tile_it = _tiles.erase(tile_it);
@@ -275,10 +290,12 @@ void NeuPIMSCore::cycle() {
     }
     for (auto tile_it = _pim_tiles.begin(); tile_it != _pim_tiles.end();) {
         auto tile = *tile_it;
-        // spdlog::info("tile remain_accum_io: {}, remain_computes: {}, remain_loads: {}",
-        //              tile->remaining_accum_io, tile->remaining_computes, tile->remaining_loads);
-        if ((tile->remaining_accum_io == 0) && (tile->remaining_computes == 0) &&
-            (tile->remaining_loads == 0)) {
+        // spdlog::info("tile remain_accum_io: {}, remain_computes: {},
+        // remain_loads: {}",
+        //              tile->remaining_accum_io, tile->remaining_computes,
+        //              tile->remaining_loads);
+        if ((tile->remaining_accum_io == 0) &&
+            (tile->remaining_computes == 0) && (tile->remaining_loads == 0)) {
             tile->status = Tile::Status::FINISH;
             _finished_tiles.push(tile);
             tile_it = _pim_tiles.erase(tile_it);
@@ -309,9 +326,12 @@ bool NeuPIMSCore::running() {
         spdlog::info("pim_tiles: {}", _pim_tiles.size() > 0);
         spdlog::info("_compute_pipeline: {}", !_compute_pipeline.empty());
         spdlog::info("_waiting_write_reqs: {}", _waiting_write_reqs != 0);
-        spdlog::info("_ld_inst_queue_for_sa: {}", !_ld_inst_queue_for_sa.empty());
-        spdlog::info("_st_inst_queue_for_sa: {}", !_st_inst_queue_for_sa.empty());
-        spdlog::info("_ex_inst_queue_for_sa: {}", !_ex_inst_queue_for_sa.empty());
+        spdlog::info("_ld_inst_queue_for_sa: {}",
+                     !_ld_inst_queue_for_sa.empty());
+        spdlog::info("_st_inst_queue_for_sa: {}",
+                     !_st_inst_queue_for_sa.empty());
+        spdlog::info("_ex_inst_queue_for_sa: {}",
+                     !_ex_inst_queue_for_sa.empty());
         spdlog::info("due to vector: {}", running);
         for (auto &vector_pipeline : _vector_pipelines) {
             spdlog::info("vp size: {}", vector_pipeline.size());
@@ -365,13 +385,15 @@ void NeuPIMSCore::push_memory_response(MemoryAccess *response) {
         // pim_header, pim_gwrite, pim_comp
         // pim_header request does not receive response
     } else if (response->spad_address >= ACCUM_SPAD_BASE) {
-        // spdlog::info("{} response to accum_spad, cycle:{}", is_read ? "LOAD" : "GEMV",
+        // spdlog::info("{} response to accum_spad, cycle:{}", is_read ? "LOAD"
+        // : "GEMV",
         //              _core_cycle);  // >>> gsheo: remove it before commit
 
         // case2: load bias to _accum_spad
         acc_spad->fill(response->spad_address, response->buffer_id);
     } else {
-        // spdlog::info("{} response to _spad, cycle:{}", is_read ? "LOAD" : "GEMV",
+        // spdlog::info("{} response to _spad, cycle:{}", is_read ? "LOAD" :
+        // "GEMV",
         //              _core_cycle);  // >>> gsheo: remove it before commit
         // case3: load activation or weight to _spad
         spad->fill(response->spad_address, response->buffer_id);
@@ -402,13 +424,15 @@ void NeuPIMSCore::pim_push_memory_response(MemoryAccess *response) {
         // pim_header, pim_gwrite, pim_comp
         // pim_header request does not receive response
     } else if (response->spad_address >= ACCUM_SPAD_BASE) {
-        // spdlog::info("{} response to accum_spad, cycle:{}", is_read ? "LOAD" : "GEMV",
+        // spdlog::info("{} response to accum_spad, cycle:{}", is_read ? "LOAD"
+        // : "GEMV",
         //              _core_cycle);  // >>> gsheo: remove it before commit
 
         // case2: load bias to _accum_spad
         _pim_acc_spad.fill(response->spad_address, response->buffer_id);
     } else {
-        // spdlog::info("{} response to _spad, cycle:{}", is_read ? "LOAD" : "GEMV",
+        // spdlog::info("{} response to _spad, cycle:{}", is_read ? "LOAD" :
+        // "GEMV",
         //              _core_cycle);  // >>> gsheo: remove it before commit
         // case3: load activation or weight to _spad
         _pim_spad.fill(response->spad_address, response->buffer_id);
@@ -431,11 +455,13 @@ bool NeuPIMSCore::can_issue_compute(Instruction &inst) {
     }
     if (!result) {
         for (addr_type addr : inst.src_addrs) {
-            // spdlog::info("NeuPIMSCore[{}] Dependency fail : {:x} , {} for {}", _id, addr,
+            // spdlog::info("NeuPIMSCore[{}] Dependency fail : {:x} , {} for
+            // {}", _id, addr,
             //              _spad.check_hit(addr, inst.spad_id), inst.repr());
         }
     }
-    // spdlog::info("can_issue_compute: {} {}", result ? "okay" : "nope", inst.repr());
+    // spdlog::info("can_issue_compute: {} {}", result ? "okay" : "nope",
+    // inst.repr());
     return result;
 }
 
@@ -445,7 +471,8 @@ bool NeuPIMSCore::pim_can_issue_compute(Instruction &inst) {
     // src addr: spad key
     for (addr_type addr : inst.src_addrs) {
         if (inst.src_from_accum && addr >= ACCUM_SPAD_BASE) {
-            result = result && _pim_acc_spad.check_hit(addr, inst.accum_spad_id);
+            result =
+                result && _pim_acc_spad.check_hit(addr, inst.accum_spad_id);
             continue;
         }
 
@@ -453,25 +480,28 @@ bool NeuPIMSCore::pim_can_issue_compute(Instruction &inst) {
     }
     if (!result) {
         for (addr_type addr : inst.src_addrs) {
-            // spdlog::info("NeuPIMSCore[{}] Dependency fail : {:x} , {} for {}", _id, addr,
+            // spdlog::info("NeuPIMSCore[{}] Dependency fail : {:x} , {} for
+            // {}", _id, addr,
             //              _spad.check_hit(addr, inst.spad_id), inst.repr());
         }
     }
-    // spdlog::info("can_issue_compute: {} {}", result ? "okay" : "nope", inst.repr());
+    // spdlog::info("can_issue_compute: {} {}", result ? "okay" : "nope",
+    // inst.repr());
     return result;
 }
 
 void NeuPIMSCore::print_stats() {
     spdlog::info(
-        "NeuPIMSCore [{}] : MatMul cycle {} LayerNorm cycle {} Softmax cycle {} "
+        "NeuPIMSCore [{}] : MatMul cycle {} LayerNorm cycle {} Softmax cycle "
+        "{} "
         "Add cycle {}  Gelu cycle {}",
-        _id, _stat_matmul_cycle, _stat_layernorm_cycle, _stat_softmax_cycle, _stat_add_cycle,
-        _stat_gelu_cycle);
+        _id, _stat_matmul_cycle, _stat_layernorm_cycle, _stat_softmax_cycle,
+        _stat_add_cycle, _stat_gelu_cycle);
     spdlog::info(
         "NeuPIMSCore [{}] : MatMul stall cycle {} LayerNorm stall cycle {} "
         "Softmax stall cycle {} Add stall cycle {} Gelu stall cycle {}",
-        _id, _compute_memory_stall_cycle, _layernorm_stall_cycle, _softmax_stall_cycle,
-        _add_stall_cycle, _gelu_stall_cycle);
+        _id, _compute_memory_stall_cycle, _layernorm_stall_cycle,
+        _softmax_stall_cycle, _add_stall_cycle, _gelu_stall_cycle);
 
     spdlog::info(
         "NeuPIMSCore [{}] : Load stall cycle {} Store stall cycle {} "
@@ -480,13 +510,13 @@ void NeuPIMSCore::print_stats() {
 
         _stat_memory_cycle, _stat_idle_cycle);
     // spdlog::info(
-    //     "NeuPIMSCore [{}] : Compute cycle {} Memory Stall Cycle {} Idle Cycle {}",
-    //     _id, _stat_compute_cycle, _stat_memory_cycle, _stat_idle_cycle);
+    //     "NeuPIMSCore [{}] : Compute cycle {} Memory Stall Cycle {} Idle Cycle
+    //     {}", _id, _stat_compute_cycle, _stat_memory_cycle, _stat_idle_cycle);
 
     // spdlog::info(
-    //     "NeuPIMSCore [{}] : Vec Compute cycle {} Vec Memory Stall Cycle {} Vec Idle
-    //     " "Cycle {}", _id, _stat_vec_compute_cycle, _stat_vec_memory_cycle,
-    //     _stat_vec_idle_cycle);
+    //     "NeuPIMSCore [{}] : Vec Compute cycle {} Vec Memory Stall Cycle {}
+    //     Vec Idle " "Cycle {}", _id, _stat_vec_compute_cycle,
+    //     _stat_vec_memory_cycle, _stat_vec_idle_cycle);
     spdlog::info("NeuPIMSCore [{}] : Total cycle: {}", _id, _core_cycle);
 }
 

@@ -4,7 +4,7 @@ cd build_release; make; cd ..;
 config=./configs/systolic_ws_128x128_dev.json
 mem_config=./configs/memory_configs/neupims.json
 model_config=./configs/model_configs/gpt3-7B.json
-sys_config=./configs/system_configs/sub-batch-off.json
+sys_config=./configs/system_configs/sub-batch-on.json
 cli_config=./request-traces/clb/share-gpt2-bs512-ms7B-tp4-clb-0.csv
 
 # log file
@@ -21,7 +21,7 @@ echo "log directory: $LOG_DIR"
 
 
 
-./build_release/bin/Simulator \
+./build_release/src/Simulator \
     --config $config \
     --mem_config $mem_config \
     --cli_config $cli_config \

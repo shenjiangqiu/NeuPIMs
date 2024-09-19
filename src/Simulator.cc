@@ -30,13 +30,14 @@ Simulator::Simulator(SimulationConfig config)
     _dram = std::make_unique<PIM>(config);
 
     // Create interconnect object
-    _icnt = std::make_unique<SimpleInterconnect>(config);
-    // if (config.icnt_type == IcntType::SIMPLE) {
-    // } else if (config.icnt_type == IcntType::BOOKSIM2) {
-    //     _icnt = std::make_unique<Booksim2Interconnect>(config);
-    // } else {
-    //     assert(0);
-    // }
+    if (config.icnt_type == IcntType::SIMPLE) {
+        _icnt = std::make_unique<SimpleInterconnect>(config);
+
+    } else if (config.icnt_type == IcntType::BOOKSIM2) {
+        _icnt = std::make_unique<Booksim2Interconnect>(config);
+    } else {
+        assert(0);
+    }
 
     // Create core objects
     _cores.resize(config.num_cores);
@@ -127,7 +128,6 @@ void Simulator::cycle() {
         set_cycle_mask();
         // Core Cycle
         if (_cycle_mask & CORE_MASK) {
-
             // client to scheduler, info: InferRequest
             while (_client->has_request()) {  // FIXME: change while to if
                 std::shared_ptr<InferRequest> infer_request =
@@ -153,7 +153,6 @@ void Simulator::cycle() {
             _scheduler->cycle();
 
             for (unsigned core_id = 0; core_id < _n_cores; core_id++) {
-
                 // finished tile
                 auto finished_tile = _cores[core_id]->pop_finished_tile();
                 if (finished_tile == nullptr) {
@@ -323,11 +322,14 @@ void Simulator::set_cycle_mask() {
 }
 
 uint32_t Simulator::get_dest_node(MemoryAccess *access) {
+    uint32_t dest = 0;
     if (access->request) {
         // MemoryAccess not issued
-        return _n_cores * _n_memories + _dram->get_channel_id(access);
+        dest = _n_cores * _n_memories + _dram->get_channel_id(access);
     } else {
         // MemoryAccess after it is pushed into dram
-        return access->core_id * _n_memories + _dram->get_channel_id(access);
+        dest = access->core_id * _n_memories + _dram->get_channel_id(access);
     }
+    assert(dest < 100);
+    return dest;
 }

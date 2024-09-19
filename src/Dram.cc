@@ -1,11 +1,13 @@
 #include "Dram.h"
 
-#include "helper/HelperFunctions.h"
+#include <bindings.h>
 
+#include "helper/HelperFunctions.h"
 // >>> gsheo
 
 PIM::PIM(SimulationConfig config)
-    : _mem(std::make_unique<dramsim3::NewtonSim>(config.pim_config_path, config.log_dir)) {
+    : _mem(std::make_unique<dramsim3::NewtonSim>(config.pim_config_path,
+                                                 config.log_dir)) {
     _total_processed_requests.resize(config.dram_channels);
     _processed_requests.resize(config.dram_channels);
 
@@ -19,6 +21,7 @@ PIM::PIM(SimulationConfig config)
     for (size_t i = 0; i < config.dram_channels; ++i) {
         _stats[i].push_back(MemoryIOStat(0, i, _stat_interval));
     }
+    fast_ret_queue.resize(config.dram_channels);
 
     _config = config;
     _cycles = 0;
@@ -33,7 +36,8 @@ PIM::PIM(SimulationConfig config)
     int ba = 1;
     int row = 231;
     int col = 10;
-    uint64_t dram_addr = AddressConfig::make_address(ch, rank, bg, ba, row, col);
+    uint64_t dram_addr =
+        AddressConfig::make_address(ch, rank, bg, ba, row, col);
     uint64_t newtonsim_addr = MakeAddress(ch, rank, bg, ba, row, col);
     assert(dram_addr == newtonsim_addr);
     spdlog::info("Newton init");
@@ -50,7 +54,8 @@ void PIM::cycle() {
     if (_cycles % interval == 0) {
         spdlog::debug("-------------DRAM BW Check--------------");
         for (int ch = 0; ch < _config.dram_channels; ch++) {
-            float util = ((float)_processed_requests[ch] * _burst_cycle) / interval * 100;
+            float util = ((float)_processed_requests[ch] * _burst_cycle) /
+                         interval * 100;
             spdlog::debug("DRAM CH[{}]: BW Util {:.2f}%", ch, util);
             _total_processed_requests[ch] += _processed_requests[ch];
             _processed_requests[ch] = 0;
@@ -66,16 +71,19 @@ void PIM::cycle() {
     }
 }
 
-uint64_t PIM::MakeAddress(int channel, int rank, int bankgroup, int bank, int row, int col) {
+uint64_t PIM::MakeAddress(int channel, int rank, int bankgroup, int bank,
+                          int row, int col) {
     return _mem->MakeAddress(channel, rank, bankgroup, bank, row, col);
 }
-uint64_t PIM::EncodePIMHeader(int channel, int row, bool for_gwrite, int num_comps,
-                              int num_readres) {
-    return _mem->EncodePIMHeader(channel, row, for_gwrite, num_comps, num_readres);
+uint64_t PIM::EncodePIMHeader(int channel, int row, bool for_gwrite,
+                              int num_comps, int num_readres) {
+    return _mem->EncodePIMHeader(channel, row, for_gwrite, num_comps,
+                                 num_readres);
 }
 
 bool PIM::is_full(uint32_t cid, MemoryAccess *request) {
-    bool full = !_mem->WillAcceptTransaction(request->dram_address, int(request->req_type));
+    bool full = !_mem->WillAcceptTransaction(request->dram_address,
+                                             int(request->req_type));
     // if (cid == 0) {
     // if (full)
     //     spdlog::info("MEMORY channel {} is full!! {}", cid,
@@ -89,13 +97,27 @@ bool PIM::is_full(uint32_t cid, MemoryAccess *request) {
 }
 
 void PIM::push(uint32_t cid, MemoryAccess *request) {
+    uint32_t mem_ch = get_channel_id(request);
+
+    auto settings = get_settings();
+    if (settings->fast_read && request->req_type == MemoryAccessType::READ) {
+        // return immediately
+        request->request = false;
+        fast_ret_queue[mem_ch].push_back(request);
+        assert(request->core_id < 100);
+
+        // fix bug here, double add request to queue,
+        // if in rust, this will not happen due to ownership
+        return;
+    }
+
     // std::string acc_type_str = memAccessTypeString(request->req_type);
     // if (cid == 0) spdlog::info("{} cid:{}", acc_type_str, cid)
 
-    uint32_t mem_ch = get_channel_id(request);
     assert(mem_ch == cid);
 
-    const addr_type atomic_bytes = _mem->GetBurstLength() * _mem->GetBusBits() / 8;
+    const addr_type atomic_bytes =
+        _mem->GetBurstLength() * _mem->GetBusBits() / 8;
     // const addr_type atomic_bytes =
     //     _mem->GetBurstLength() * _mem->GetBusBits() / 8;
     const addr_type target_addr = request->dram_address;
@@ -112,15 +134,24 @@ void PIM::push(uint32_t cid, MemoryAccess *request) {
     _mem->AddTransaction(target_addr, int(request->req_type), request);
 }
 
-bool PIM::is_empty(uint32_t cid) {
+bool PIM::is_empty(uint32_t cid) const {
     // spdlog::info("pim is_empty(" + std::to_string(cid) +
     //              "):" + std::to_string(_mem->IsEmpty(cid)));
-    return _mem->IsEmpty(cid);
+    // spdlog::info("pim is_empty({}):{}", cid, _mem->IsEmpty(cid));
+    // spdlog::info("fast_ret_queue[{}].empty():{}", cid,
+    //              fast_ret_queue[cid].empty());
+    return fast_ret_queue[cid].empty() && _mem->IsEmpty(cid);
 }
 
-MemoryAccess *PIM::top(uint32_t cid) {
+MemoryAccess *PIM::top(uint32_t cid) const {
     assert(!is_empty(cid));
-    return (MemoryAccess *)_mem->Top(cid);
+    if (fast_ret_queue[cid].empty()) {
+        return (MemoryAccess *)_mem->Top(cid);
+    } else {
+        MemoryAccess *ret = fast_ret_queue[cid].front();
+        // fast_ret_queue[cid].pop_front();
+        return ret;
+    }
 }
 void PIM::update_stat(uint32_t cid) {
     // READ, WRITE, GWRITE, COMP, READRES, P_HEADER, COMPS_READRES, SIZE
@@ -156,7 +187,11 @@ void PIM::pop(uint32_t cid) {
     update_stat(cid);
 
     assert(!is_empty(cid));
-    _mem->Pop(cid);
+    if (fast_ret_queue[cid].empty()) {
+        _mem->Pop(cid);
+    } else {
+        fast_ret_queue[cid].pop_front();
+    }
 }
 
 uint32_t PIM::get_channel_id(MemoryAccess *access) {
@@ -168,11 +203,13 @@ void PIM::print_stat() {
     // spdlog::info("pim print_stat()");
     uint32_t total_reqs = 0;
     for (int ch = 0; ch < _config.dram_channels; ch++) {
-        float util = ((float)_total_processed_requests[ch] * _burst_cycle) / _cycles * 100;
+        float util = ((float)_total_processed_requests[ch] * _burst_cycle) /
+                     _cycles * 100;
         spdlog::info("DRAM CH[{}]: AVG BW Util {:.2f}%", ch, util);
         total_reqs += _total_processed_requests[ch];
     }
-    float util = ((float)total_reqs * _burst_cycle / _config.dram_channels) / _cycles * 100;
+    float util = ((float)total_reqs * _burst_cycle / _config.dram_channels) /
+                 _cycles * 100;
     spdlog::info("DRAM: AVG BW Util {:.2f}%", util);
     spdlog::info("DRAM total cycles: {}", _cycles);
     spdlog::info("DRAM total processed memory requests: {}", _mem_req_cnt);
@@ -180,7 +217,8 @@ void PIM::print_stat() {
 }
 
 void PIM::log(Stage stage) {
-    std::string fname = Config::global_config.log_dir + "/mem_io_" + stageToString(stage) + "_ch_";
+    std::string fname = Config::global_config.log_dir + "/mem_io_" +
+                        stageToString(stage) + "_ch_";
     for (size_t i = 0; i < _stats.size(); ++i) {
         Logger::log(_stats[i], fname + std::to_string(i));
         auto last_stat = _stats[i].back();
@@ -191,7 +229,8 @@ void PIM::log(Stage stage) {
 
 double PIM::get_avg_bw_util() {
     double avg_bw_util =
-        ((double)_total_done_requests * _burst_cycle / _config.dram_channels) / _stage_cycles * 100;
+        ((double)_total_done_requests * _burst_cycle / _config.dram_channels) /
+        _stage_cycles * 100;
 
     // reset
     _total_done_requests = 0;
