@@ -6,7 +6,8 @@ Softmax::Softmax(std::string name) : Operation(name) {
 }
 
 // Softmax does not change shapes.
-std::vector<Ptr<BTensor>> Softmax::get_outputs(std::vector<Ptr<BTensor>> inputs) {
+std::vector<Ptr<BTensor>> Softmax::get_outputs(
+    std::vector<Ptr<BTensor>> inputs) {
     set_as_parent_tensor(inputs);
 
     _batch_size = inputs.size();
@@ -17,8 +18,8 @@ std::vector<Ptr<BTensor>> Softmax::get_outputs(std::vector<Ptr<BTensor>> inputs)
     for (int i = 0; i < _batch_size; i++) {
         std::vector<uint32_t> input_dim = inputs[i]->get_dims();
 
-        _outputs[i] =
-            std::make_shared<NPUTensor>(_name + "_output", input_dim, NPUTensorBufType::ACT, false);
+        _outputs[i] = std::make_shared<NPUTensor>(_name + "_output", input_dim,
+                                                  NPUTensorBufType::ACT, false);
     }
     spdlog::info("softmax batch_size: {}", _batch_size);
 
@@ -70,19 +71,24 @@ Tile Softmax::initialize_instructions(uint32_t N, uint32_t req_idx) {
 
     const uint32_t loop_size = _config.vector_core_width;
 
-    auto activation_tensor = std::static_pointer_cast<NPUTensor>(_inputs[req_idx]);
+    auto activation_tensor =
+        std::static_pointer_cast<NPUTensor>(_inputs[req_idx]);
     auto output_tensor = std::static_pointer_cast<NPUTensor>(_outputs[req_idx]);
 
-    for (uint32_t n_inner_offset = 0; n_inner_offset < n_inner; ++n_inner_offset) {
+    for (uint32_t n_inner_offset = 0; n_inner_offset < n_inner;
+         ++n_inner_offset) {
         addr_type sram_activation_offset =
-            sram_activation_base + n_inner_offset * weight_count * _config.precision;
+            sram_activation_base +
+            n_inner_offset * weight_count * _config.precision;
         addr_type sram_accumulation_offset =
-            sram_accumulation_base + n_inner_offset * weight_count * _config.precision;
+            sram_accumulation_base +
+            n_inner_offset * weight_count * _config.precision;
         // addr_type sram_activation_tmp_offset = sram_activation_tmp_base +
         // n_inner_offset * weight_count * _config.precision;
 
         // -- activation --
-        auto activation_addrs = activation_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
+        auto activation_addrs =
+            activation_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
 
         spdlog::info("Softmax act_addrs.size(): {}", activation_addrs.size());
 
@@ -102,7 +108,10 @@ Tile Softmax::initialize_instructions(uint32_t N, uint32_t req_idx) {
             .src_addrs = std::vector<addr_type>{sram_activation_offset},
         });
         // -- save outputs --
-        auto output_addrs = output_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
+        auto output_addrs =
+            output_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
+        assert(output_addrs.size() > 0);
+
         tile.instructions.push_back(Instruction{
             .opcode = Opcode::MOVOUT,
             .dest_addr = sram_accumulation_offset,
@@ -135,7 +144,8 @@ void Softmax::calculate_loops(uint32_t req_idx) {
     while (sram_size_needed() > _config.spad_size KB / 2) {
         _outer_loop[0] *= 2;
         _inner_loop[0] = (_inner_loop[0] & 1) + (_inner_loop[0] >> 1);
-        spdlog::info("SoftMax inner loop: {}, outer loop: {}", _inner_loop, _outer_loop);
+        spdlog::info("SoftMax inner loop: {}, outer loop: {}", _inner_loop,
+                     _outer_loop);
     }
 }
 

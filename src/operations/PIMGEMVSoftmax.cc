@@ -3,7 +3,8 @@
 
 PIMGEMVSoftmax::PIMGEMVSoftmax(std::string name) : Operation(name) {}
 
-std::vector<Ptr<BTensor>> PIMGEMVSoftmax::get_outputs(std::vector<Ptr<BTensor>> inputs) {
+std::vector<Ptr<BTensor>> PIMGEMVSoftmax::get_outputs(
+    std::vector<Ptr<BTensor>> inputs) {
     set_as_parent_tensor(inputs);
 
     _inputs = inputs;
@@ -40,8 +41,8 @@ std::vector<Ptr<BTensor>> PIMGEMVSoftmax::get_outputs(std::vector<Ptr<BTensor>> 
         assert(Q->get_dims()[2] == K->get_dims()[1]);
         std::vector<uint32_t> gemv_output_dim{_nh, 1, seq_len};
 
-        _outputs[i] = std::make_shared<NPUTensor>(_name + "_output", gemv_output_dim,
-                                                  NPUTensorBufType::ACT, false);
+        _outputs[i] = std::make_shared<NPUTensor>(
+            _name + "_output", gemv_output_dim, NPUTensorBufType::ACT, false);
     }
 
     // todo tiling and instruction initialization.
@@ -54,7 +55,9 @@ std::vector<Ptr<BTensor>> PIMGEMVSoftmax::get_outputs(std::vector<Ptr<BTensor>> 
     return _outputs;
 }
 
-void PIMGEMVSoftmax::initialize_tiles() { _tiles.push_back(initialize_instructions()); }
+void PIMGEMVSoftmax::initialize_tiles() {
+    _tiles.push_back(initialize_instructions());
+}
 
 Tile PIMGEMVSoftmax::initialize_instructions() {
     uint32_t banks_per_channel = 32;  // FIXME:
@@ -82,14 +85,18 @@ Tile PIMGEMVSoftmax::initialize_instructions() {
         std::map<uint32_t, std::vector<addr_type>> sram_readres_addrs;
 
         uint32_t tiles_per_chunk =
-            key->get_allocated_seq_len() / banks_per_channel;  // number of comp-readres kernel
+            key->get_allocated_seq_len() /
+            banks_per_channel;  // number of comp-readres kernel
 
         for (int chunk = 0; chunk < _chunks; chunk++) {
             // uint64_t make_address(channel, rank, bankgroup, bank, row, col);
-            // uint64_t encode_pim_header(channel, row, bool for_gwrite, num_comps, num_readres);
+            // uint64_t encode_pim_header(channel, row, bool for_gwrite,
+            // num_comps, num_readres);
 
-            uint64_t query_row = 0;  // FIXME: decode row index from dram address
-            uint64_t p_header_addr = AddressConfig::encode_pim_header(ch, query_row, true, 0, 0);
+            uint64_t query_row =
+                0;  // FIXME: decode row index from dram address
+            uint64_t p_header_addr =
+                AddressConfig::encode_pim_header(ch, query_row, true, 0, 0);
 
             //  P_HEADER (for_gwrite=true)
             // tile.instructions.push_back(Instruction{
@@ -103,20 +110,23 @@ Tile PIMGEMVSoftmax::initialize_instructions() {
                 .opcode = Opcode::PIM_GWRITE,
                 .dest_addr = sram_addr,
                 .size = 0,
-                .src_addrs = std::vector<addr_type>{p_header_addr},  // FIXME: gwrite addr
+                .src_addrs =
+                    std::vector<addr_type>{
+                        p_header_addr},  // FIXME: gwrite addr
                 .operand_id = _INPUT_OPERAND,
             });
             // GWRITE (channel, bank, row)
 
             for (int ti = 0; ti < tiles_per_chunk; ti++) {
-                int num_head_in_tile =
-                    (chunk == _chunks - 1) ? _heads_in_last_chunk : _heads_per_tile;
+                int num_head_in_tile = (chunk == _chunks - 1)
+                                           ? _heads_in_last_chunk
+                                           : _heads_per_tile;
 
                 uint32_t DRAM_row = key->_rows[ti * _chunks + chunk];
                 int num_comps = _comps_per_head * num_head_in_tile;
                 int num_readres = num_head_in_tile;
-                p_header_addr =
-                    AddressConfig::encode_pim_header(ch, DRAM_row, false, num_comps, num_readres);
+                p_header_addr = AddressConfig::encode_pim_header(
+                    ch, DRAM_row, false, num_comps, num_readres);
                 // P_HEADER (num_comps = comps_per_head * num_heads, num_readres
                 tile.instructions.push_back(Instruction{
                     .opcode = Opcode::PIM_HEADER,
@@ -132,7 +142,8 @@ Tile PIMGEMVSoftmax::initialize_instructions() {
 
                 for (int head = 0; head < num_head_in_tile; head++) {
                     int hi = _heads_per_tile * chunk + head;
-                    uint64_t dram_addr = AddressConfig::make_address(ch, 0, 0, 0, DRAM_row, 0);
+                    uint64_t dram_addr =
+                        AddressConfig::make_address(ch, 0, 0, 0, DRAM_row, 0);
                     Instruction comp_inst = Instruction{
                         .opcode = Opcode::PIM_COMP,
                         .dest_addr = sram_addr,
@@ -157,8 +168,10 @@ Tile PIMGEMVSoftmax::initialize_instructions() {
                     num_readres_debug++;
                     cmds += "READRES ";
                     // spdlog::info("tile_idx:{}, head_idx: {}", ti, hi);
-                    if (sram_readres_addrs.find(hi) == sram_readres_addrs.end())  // not exists
-                        sram_readres_addrs[hi] = std::vector<addr_type>{sram_addr};
+                    if (sram_readres_addrs.find(hi) ==
+                        sram_readres_addrs.end())  // not exists
+                        sram_readres_addrs[hi] =
+                            std::vector<addr_type>{sram_addr};
                     else
                         sram_readres_addrs[hi].push_back(sram_addr);
 
@@ -171,13 +184,15 @@ Tile PIMGEMVSoftmax::initialize_instructions() {
                 //     std::string color = red;
                 //     if (num_comps_debug == num_comps) color = reset;
 
-                //     spdlog::info("{}num_comps: {}, actual:{},  {}", color, num_comps,
+                //     spdlog::info("{}num_comps: {}, actual:{},  {}", color,
+                //     num_comps,
                 //                  num_comps_debug, reset);
                 //     if (num_readres_debug == num_readres)
                 //         color = reset;
                 //     else
                 //         color = red;
-                //     spdlog::info("{}num_readres: {}, actual:{},  {}", color, num_readres,
+                //     spdlog::info("{}num_readres: {}, actual:{},  {}", color,
+                //     num_readres,
                 //                  num_readres_debug, reset);
                 //     spdlog::info("{}cmds: {}{}", red, cmds, reset);
                 // }
@@ -188,21 +203,26 @@ Tile PIMGEMVSoftmax::initialize_instructions() {
         }
         for (int hi = 0; hi < _nh; hi++) {
             assert(sram_readres_addrs[hi].size() == tiles_per_chunk);
-            uint32_t column_height = key->_seq_len;  // tiles_per_chunk * banks_per_channel;
-            // spdlog::info("col height: {}, seq_len: {}", column_height, key->_seq_len);
+            uint32_t column_height =
+                key->_seq_len;  // tiles_per_chunk * banks_per_channel;
+            // spdlog::info("col height: {}, seq_len: {}", column_height,
+            // key->_seq_len);
             tile.instructions.push_back(Instruction{
                 .opcode = Opcode::SOFTMAX,
                 .dest_addr = sram_acc_base,
                 .size = column_height,
                 .src_addrs = sram_readres_addrs[hi],
             });
+            auto output_addrs = std::static_pointer_cast<NPUTensor>(_outputs[i])
+                                    ->_inners[hi]
+                                    ->get_all_addrs();
+            assert(output_addrs.size() > 0);
+
             tile.instructions.push_back(Instruction{
                 .opcode = Opcode::MOVOUT,
                 .dest_addr = sram_acc_base,
                 .size = column_height * _config.precision,
-                .src_addrs = std::static_pointer_cast<NPUTensor>(_outputs[i])
-                                 ->_inners[hi]
-                                 ->get_all_addrs(),  // TODO:
+                .src_addrs = std::move(output_addrs),
                 .operand_id = _OUTPUT_OPERAND,
             });
             sram_acc_base += column_height * _config.precision;
@@ -220,8 +240,8 @@ void PIMGEMVSoftmax::calculate_loops() {
     assert(sram_size_needed() < _config.spad_size KB / 2);
 
     uint32_t E = _config.model_n_embd;
-    uint32_t page_size =
-        _config.dram_page_size / _config.precision;  // number of parameters in dram row
+    uint32_t page_size = _config.dram_page_size /
+                         _config.precision;  // number of parameters in dram row
     uint32_t banks_per_channel = _config.dram_banks_per_ch;
     uint32_t datas_per_comp_cmd = _config.pim_comp_coverage;
 
@@ -231,8 +251,8 @@ void PIMGEMVSoftmax::calculate_loops() {
     _comps_per_head = ceil((double)_dk / datas_per_comp_cmd);
     std::string yellow = "\033[1;33m";
     std::string reset = "\033[0m";
-    spdlog::info("{}chunks:{}, heads_per_tile:{}, comps_per_head:{} {}", yellow, _chunks,
-                 _heads_per_tile, _comps_per_head, reset);
+    spdlog::info("{}chunks:{}, heads_per_tile:{}, comps_per_head:{} {}", yellow,
+                 _chunks, _heads_per_tile, _comps_per_head, reset);
 }
 
 uint32_t PIMGEMVSoftmax::sram_size_needed() {
@@ -243,7 +263,8 @@ uint32_t PIMGEMVSoftmax::sram_size_needed() {
         total_seq_len += key->get_dims()[2];
     }
 
-    uint32_t need_size = total_seq_len * _config.model_n_head * _config.precision;
+    uint32_t need_size =
+        total_seq_len * _config.model_n_head * _config.precision;
 
     return need_size;
 }

@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "Stat.h"
+#include "bindings.h"
 #include "helper/HelperFunctions.h"
 
 NeuPIMSCore::NeuPIMSCore(uint32_t id, SimulationConfig config)
@@ -89,37 +90,61 @@ bool NeuPIMSCore::can_issue(Tile &next_tile) {
 // switch tiles to shared ptr
 // todo: check tile start cycle
 void NeuPIMSCore::issue(Tile &in_tile) {
+    // Log the issuance of the tile
     spdlog::info("tile issued {}", in_tile.repr());
+
+    // Create a shared pointer to a new Tile object based on the input tile
     auto tile = std::make_shared<Tile>(in_tile);
+
+    // Initialize the tile's statistics with the current core cycle
     tile->stat = TileStat(_core_cycle);
+
+    // If the tile is marked to be skipped, set its status to FINISH and push it
+    // to the finished tiles queue
     if (tile->skip) {
         tile->status = Tile::Status::FINISH;
         _finished_tiles.push(tile);
         return;
     }
-    /* Double buffer */
+
+    // Double buffering: update the current scratchpad and flush it
     _current_spad = (_current_spad + 1) % 2;
     _spad.flush(_current_spad);
     tile->spad_id = _current_spad;
+
+    // If the tile does not require accumulation, update and flush the
+    // accumulation scratchpad
     if (!tile->accum) {
-        /* Accumeulate tile uses same acc spad buffer */
-        // accumulate to same acc_spad if K > 1
         _current_acc_spad = (_current_acc_spad + 1) % 2;
         _acc_spad.flush(_current_acc_spad);
     }
     tile->accum_spad_id = _current_acc_spad;
+
+    // Set the tile's status to RUNNING
     tile->status = Tile::Status::RUNNING;
+
+    // Update the running layer if the tile's operation ID is different from the
+    // current running layer
     if (_running_layer != tile->operation_id) {
         _running_layer = tile->operation_id;
     }
 
+    // Initialize counters for remaining loads, computes, and accumulation I/O
+    // operations to zero
     tile->remaining_loads = 0;
     tile->remaining_computes = 0;
     tile->remaining_accum_io = 0;
+
+    // Iterate over the tile's instructions
     for (auto &inst : tile->instructions) {
+        // Set the parent tile, scratchpad ID, and accumulation scratchpad ID
+        // for each instruction
         inst.parent_tile = std::weak_ptr<Tile>(tile);
         inst.spad_id = tile->spad_id;
         inst.accum_spad_id = tile->accum_spad_id;
+
+        // Determine the appropriate buffer (scratchpad or accumulation
+        // scratchpad) based on the instruction's destination address
         Sram *buffer;
         int buffer_id;
         if (inst.dest_addr >= ACCUM_SPAD_BASE) {
@@ -129,49 +154,55 @@ void NeuPIMSCore::issue(Tile &in_tile) {
             buffer = &_spad;
             buffer_id = tile->spad_id;
         }
-        if (inst.opcode == Opcode::PIM_HEADER) {
-            assert(0);
-            _ld_inst_queue_for_sa.push(inst);
-        } else if (inst.opcode == Opcode::MOVIN ||
-                   inst.opcode == Opcode::PIM_GWRITE ||
-                   inst.opcode == Opcode::PIM_COMP ||
-                   inst.opcode == Opcode::PIM_READRES ||
-                   inst.opcode == Opcode::PIM_COMPS_READRES) {
-            switch (inst.opcode) {
-                case Opcode::PIM_GWRITE:
-                case Opcode::PIM_COMP:
-                case Opcode::PIM_READRES:
-                case Opcode::PIM_COMPS_READRES:
-                    spdlog::info("pim operations unreachable.");
-                    assert(0);
-            }
+
+        switch (inst.opcode) {
+            case Opcode::PIM_GWRITE:
+            case Opcode::PIM_COMP:
+            case Opcode::PIM_READRES:
+            case Opcode::PIM_COMPS_READRES:
+            case Opcode::PIM_HEADER:
+                spdlog::info("pim operations unreachable.");
+                assert(0);
+        }
+        // Handle different opcodes
+        if (inst.opcode == Opcode::MOVIN) {
+            // Check if the buffer can allocate the required space
             if (!buffer->check_allocated(inst.dest_addr, buffer_id) &&
                 buffer->check_remain(inst.size, buffer_id)) {
+                // Increment the remaining loads counter and push the
+                // instruction to the load instruction queue
                 tile->remaining_loads++;
+                add_loads(1);
                 _ld_inst_queue_for_sa.push(inst);
             } else {
-                spdlog::info("sram size: {} / sram used: {}",
-                             _config.sram_size KB / 2,
-                             buffer->get_current_size(buffer_id));
-                spdlog::info("instruction destination address {:x}",
-                             inst.dest_addr);
-                spdlog::info("failed to allocate {} on sram.", inst.size);
+                // Log failure to allocate space in the buffer and assert
+                // failure
+                spdlog::error("sram size: {} / sram used: {}",
+                              _config.sram_size KB / 2,
+                              buffer->get_current_size(buffer_id));
+                spdlog::error("instruction destination address {:x}",
+                              inst.dest_addr);
+                spdlog::error("failed to allocate {} on sram.", inst.size);
                 buffer->print_all(buffer_id);
-                /*Invalid state */
                 assert(0);
             }
         } else if (inst.opcode == Opcode::MOVOUT ||
                    inst.opcode == Opcode::MOVOUT_POOL) {
+            // Handle MOVOUT and MOVOUT_POOL opcodes
             tile->remaining_accum_io++;
+            add_stores(1);
             _st_inst_queue_for_sa.push(inst);
         } else {
-            /* Ex inst queue */
+            // Handle other opcodes
             tile->remaining_accum_io++;
+            add_stores(1);
             tile->remaining_computes++;
+            add_computes(1);
             _ex_inst_queue_for_sa.push(inst);
         }
     }
-    // spdlog::info("tile pushed to core._tiles {}", tile.repr());
+
+    // Add the tile to the core's tiles list
     _tiles.push_back(tile);
 }
 
@@ -307,38 +338,69 @@ void NeuPIMSCore::cycle() {
 }
 
 bool NeuPIMSCore::running() {
+    // Initialize a flag to track if the core is running
     bool running = false;
+    // Check if there are any tiles in the queue and update the running flag
+    // accordingly
     running = running || _tiles.size() > 0;
+    // Check if the compute pipeline is not empty and update the running flag
+    // accordingly
     running = running || !_compute_pipeline.empty();
+    // Check if there are any waiting write requests and update the running flag
+    // accordingly
     running = running || _waiting_write_reqs != 0;
+    // Check if the load instruction queue for SA is not empty and update the
+    // running flag accordingly
     running = running || !_ld_inst_queue_for_sa.empty();
+    // Check if the store instruction queue for SA is not empty and update the
+    // running flag accordingly
     running = running || !_st_inst_queue_for_sa.empty();
+    // Check if the execute instruction queue for SA is not empty and update the
+    // running flag accordingly
     running = running || !_ex_inst_queue_for_sa.empty();
+    // Temporarily store the running state before checking vector pipelines
     bool temp = running;
+    // Check each vector pipeline to see if it's not empty and update the
+    // running flag accordingly
     for (auto &vector_pipeline : _vector_pipelines) {
         running = running || !vector_pipeline.empty();
     }
 
+    // Define an interval for status checks
     int status_check_interval = 1000000;
+    // If the core cycle is a multiple of the status check interval and a
+    // condition is met (currently always false), perform a status check
     if (_core_cycle % status_check_interval == 0 && false) {
+        // Log the start of the status check
         spdlog::info("------Simulator Status Check------");
+        // Log the status of tiles
         spdlog::info("tiles: {}", _tiles.size() > 0);
+        // Log the status of PIM tiles
         spdlog::info("pim_tiles: {}", _pim_tiles.size() > 0);
+        // Log the status of the compute pipeline
         spdlog::info("_compute_pipeline: {}", !_compute_pipeline.empty());
+        // Log the status of waiting write requests
         spdlog::info("_waiting_write_reqs: {}", _waiting_write_reqs != 0);
+        // Log the status of the load instruction queue for SA
         spdlog::info("_ld_inst_queue_for_sa: {}",
                      !_ld_inst_queue_for_sa.empty());
+        // Log the status of the store instruction queue for SA
         spdlog::info("_st_inst_queue_for_sa: {}",
                      !_st_inst_queue_for_sa.empty());
+        // Log the status of the execute instruction queue for SA
         spdlog::info("_ex_inst_queue_for_sa: {}",
                      !_ex_inst_queue_for_sa.empty());
+        // Log the status due to vector pipelines
         spdlog::info("due to vector: {}", running);
+        // Log the size of each vector pipeline
         for (auto &vector_pipeline : _vector_pipelines) {
             spdlog::info("vp size: {}", vector_pipeline.size());
         }
+        // Log the end of the status check
         spdlog::info("----------------------------------");
     }
 
+    // Return the final running state
     return running;
 }
 
@@ -371,7 +433,16 @@ void NeuPIMSCore::push_memory_response(MemoryAccess *response) {
     if (auto tile = response->parent_tile.lock()) {
         if (is_write) {
             tile->remaining_accum_io--;
+            if (!reduce_stores(1)) {
+                spdlog::error("reduce_stores failed");
+                throw std::runtime_error("reduce_stores failed");
+            }
         } else {
+            if (!reduce_loads(1)) {
+                spdlog::error("reduce_loads failed");
+                throw std::runtime_error("reduce_loads failed");
+            }
+            assert(tile->remaining_loads > 0);
             tile->remaining_loads--;
         }
     } else {

@@ -1,14 +1,12 @@
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
-pub mod settings;
+pub mod allocator;
+pub mod global_config;
+pub mod global_counts;
+pub mod instruction;
 pub mod no_icnt;
-#[no_mangle]
-pub extern "C" fn test_rust(a: i32, b: i32) -> i32 {
-    let c = a + b;
-    info!("{} + {} = {}", a, b, c);
-    c
-}
-
+pub mod settings;
+pub mod tensor;
 #[repr(C)]
 pub enum LogLevel {
     Debug,
@@ -27,6 +25,11 @@ impl From<LogLevel> for LevelFilter {
         }
     }
 }
+/// 初始化日志记录器
+///
+/// # 参数
+///
+/// * `level` - 日志级别
 #[no_mangle]
 pub extern "C" fn init_logger(level: LogLevel) {
     let level = LevelFilter::from(level);

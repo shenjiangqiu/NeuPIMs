@@ -92,7 +92,8 @@ int main(int argc, char **argv) {
     Operation::initialize(Config::global_config);
 
     auto simulator = std::make_unique<Simulator>(Config::global_config);
-    AddressConfig::alignment = Config::global_config.dram_req_size;
+    AddressConfig::alignment = Config::global_config.dram_req_size *
+                               Config::global_config.dram_channels;
     // todo: assert log2
     AddressConfig::channel_mask = Config::global_config.dram_channels - 1;
     // todo: magic number
@@ -124,6 +125,7 @@ int main(int argc, char **argv) {
     simulator->launch_model(model);
     spdlog::info("Launch model: {}", model_name);
     simulator->run(model_name);
+    save_global_counts_to_file();
 
     MemoryAccess::log_count();
 

@@ -290,6 +290,8 @@ cycle_type SystolicWS::get_vector_compute_cycles(Instruction &inst) {
             return vec_op_iter * _config.gelu_latency;
         case Opcode::DUMMY:
             return 1;
+        default:
+            assert(0);
     }
     spdlog::info("not configured operation. {}", inst.id);
     // assert(0);

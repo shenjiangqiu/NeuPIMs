@@ -88,6 +88,7 @@ target_include_directories(dramsim3
 )
 target_compile_options(dramsim3 PRIVATE -Wall)
 target_link_libraries(dramsim3 PRIVATE inih format)
+target_link_libraries(dramsim3 PUBLIC rust_i)
 set_target_properties(dramsim3 PROPERTIES
     CXX_STANDARD 11
     CXX_STANDARD_REQUIRED YES

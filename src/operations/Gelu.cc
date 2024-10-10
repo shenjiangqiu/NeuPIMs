@@ -12,8 +12,8 @@ std::vector<Ptr<BTensor>> Gelu::get_outputs(std::vector<Ptr<BTensor>> inputs) {
     _inputs[0] = inputs[0];
 
     _input_dim = inputs[0]->get_dims();
-    _outputs[0] =
-        std::make_shared<NPUTensor>(_name + "_output", _input_dim, NPUTensorBufType::ACT, false);
+    _outputs[0] = std::make_shared<NPUTensor>(_name + "_output", _input_dim,
+                                              NPUTensorBufType::ACT, false);
 
     calculate_loops();
     initialize_tiles();
@@ -52,16 +52,20 @@ Tile Gelu::initialize_instructions(uint32_t N) {
     auto activation_tensor = std::static_pointer_cast<NPUTensor>(_inputs[0]);
     auto output_tensor = std::static_pointer_cast<NPUTensor>(_outputs[0]);
 
-    for (uint32_t n_inner_offset = 0; n_inner_offset < n_inner; ++n_inner_offset) {
+    for (uint32_t n_inner_offset = 0; n_inner_offset < n_inner;
+         ++n_inner_offset) {
         addr_type sram_activation_offset =
-            sram_activation_base + n_inner_offset * weight_count * _config.precision;
+            sram_activation_base +
+            n_inner_offset * weight_count * _config.precision;
         addr_type sram_accumulation_offset =
-            sram_accumulation_base + n_inner_offset * weight_count * _config.precision;
+            sram_accumulation_base +
+            n_inner_offset * weight_count * _config.precision;
         // addr_type sram_activation_tmp_offset = sram_activation_tmp_base +
         // n_inner_offset * weight_count * _config.precision;
 
         // -- activation --
-        auto activation_addrs = activation_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
+        auto activation_addrs =
+            activation_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
 
         tile.instructions.push_back(Instruction{
             .opcode = Opcode::MOVIN,
@@ -79,7 +83,9 @@ Tile Gelu::initialize_instructions(uint32_t N) {
             .src_addrs = std::vector<addr_type>{sram_activation_offset},
         });
         // -- save outputs --
-        auto output_addrs = output_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
+        auto output_addrs =
+            output_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
+        assert(output_addrs.size() > 0);
         tile.instructions.push_back(Instruction{
             .opcode = Opcode::MOVOUT,
             .dest_addr = sram_accumulation_offset,

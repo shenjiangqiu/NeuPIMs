@@ -1,6 +1,9 @@
 #include "NeuPIMSystolicWS.h"
 
-NeuPIMSystolicWS::NeuPIMSystolicWS(uint32_t id, SimulationConfig config) : NeuPIMSCore(id, config) {
+#include "bindings.h"
+
+NeuPIMSystolicWS::NeuPIMSystolicWS(uint32_t id, SimulationConfig config)
+    : NeuPIMSCore(id, config) {
     auto stat = NPUStat(_core_cycle);
     _stat.push_back(stat);
 }
@@ -36,10 +39,12 @@ void NeuPIMSystolicWS::cycle() {
 
 void NeuPIMSystolicWS::systolic_cycle() {
     /* Compute unit */
-    if (!_compute_pipeline.empty() && _compute_pipeline.front().finish_cycle <= _core_cycle) {
+    if (!_compute_pipeline.empty() &&
+        _compute_pipeline.front().finish_cycle <= _core_cycle) {
         Instruction &inst = _compute_pipeline.front();
         if (inst.dest_addr >= ACCUM_SPAD_BASE) {
-            // spdlog::info("calculation finished. instruction: {}, spad_id:{}", inst.repr(),
+            // spdlog::info("calculation finished. instruction: {}, spad_id:{}",
+            // inst.repr(),
             //              inst.accum_spad_id);
             _acc_spad.fill(inst.dest_addr, inst.accum_spad_id);
         } else {
@@ -47,7 +52,15 @@ void NeuPIMSystolicWS::systolic_cycle() {
         }
         if (auto tile = inst.parent_tile.lock()) {
             tile->remaining_accum_io--;
+            if (!reduce_stores(1)) {
+                spdlog::error("reduce_stores failed");
+                throw std::runtime_error("reduce_stores failed");
+            }
             tile->remaining_computes--;
+            if (!reduce_computes(1)) {
+                spdlog::error("reduce_computes failed");
+                throw std::runtime_error("reduce_computes failed");
+            }
         } else {
             assert(0);
         }
@@ -68,7 +81,8 @@ void NeuPIMSystolicWS::vector_unit_cycle() {
     // vector pipeline needs iterating vectors
     // todo: vector_unit.cycle();
     for (auto &vector_pipeline : _vector_pipelines) {
-        if (!vector_pipeline.empty() && vector_pipeline.front().finish_cycle <= _core_cycle) {
+        if (!vector_pipeline.empty() &&
+            vector_pipeline.front().finish_cycle <= _core_cycle) {
             Instruction &inst = vector_pipeline.front();
             Sram *buffer = inst.is_pim_inst ? &_pim_acc_spad : &_acc_spad;
             if (inst.dest_addr >= ACCUM_SPAD_BASE) {
@@ -78,7 +92,15 @@ void NeuPIMSystolicWS::vector_unit_cycle() {
             }
             if (auto tile = inst.parent_tile.lock()) {
                 tile->remaining_accum_io--;
+                if (!reduce_stores(1)) {
+                    spdlog::error("reduce_stores failed");
+                    throw std::runtime_error("reduce_stores failed");
+                }
                 tile->remaining_computes--;
+                if (!reduce_computes(1)) {
+                    spdlog::error("reduce_computes failed");
+                    throw std::runtime_error("reduce_computes failed");
+                }
             } else {
                 assert(0);
             }
@@ -110,25 +132,32 @@ void NeuPIMSystolicWS::ld_queue_cycle() {
             ast(!front.src_addrs.empty());
 
             auto accesses = MemoryAccess::from_instruction(
-                front, generate_mem_access_id(), _config.dram_req_size, MemoryAccessType::READ,
-                true, _id, _core_cycle, buffer_id, StagePlatform::SA);
+                front, generate_mem_access_id(), _config.dram_req_size,
+                MemoryAccessType::READ, true, _id, _core_cycle, buffer_id,
+                StagePlatform::SA);
 
             // xxx is this right? size, count<<src_addrs size
-            buffer->reserve(front.dest_addr, buffer_id, front.size, accesses.size());
+            buffer->reserve(front.dest_addr, buffer_id, front.size,
+                            accesses.size());
             if (auto tile = front.parent_tile.lock()) {
                 tile->remaining_loads += accesses.size() - 1;
-                tile->stat.memory_reads += accesses.size() * AddressConfig::alignment;
+                add_loads(accesses.size() - 1);
+                tile->stat.memory_reads +=
+                    accesses.size() * AddressConfig::alignment;
             } else {
                 assert(0);
-            }
+            } 
             for (auto access : accesses) {
                 filled = true;
-                ch_req_dist[AddressConfig::mask_channel(access->dram_address)]++;
+                ch_req_dist[AddressConfig::mask_channel(
+                    access->dram_address)]++;
                 push_memory_request1(access);
             }
             _ld_inst_queue_for_sa.pop();
-        } else if (front.opcode == Opcode::PIM_HEADER || front.opcode == Opcode::PIM_GWRITE ||
-                   front.opcode == Opcode::PIM_COMP || front.opcode == Opcode::PIM_READRES ||
+        } else if (front.opcode == Opcode::PIM_HEADER ||
+                   front.opcode == Opcode::PIM_GWRITE ||
+                   front.opcode == Opcode::PIM_COMP ||
+                   front.opcode == Opcode::PIM_READRES ||
                    front.opcode == Opcode::PIM_COMPS_READRES) {
             assert(0);
             Sram *buffer;
@@ -143,10 +172,12 @@ void NeuPIMSystolicWS::ld_queue_cycle() {
 
             ast(!front.src_addrs.empty());
 
-            MemoryAccess *mem_request = TransToMemoryAccess(
-                front, _config.dram_req_size, _id, _core_cycle, buffer_id, StagePlatform::SA);
+            MemoryAccess *mem_request =
+                TransToMemoryAccess(front, _config.dram_req_size, _id,
+                                    _core_cycle, buffer_id, StagePlatform::SA);
 
-            if (front.opcode == Opcode::PIM_READRES || front.opcode == Opcode::PIM_COMPS_READRES)
+            if (front.opcode == Opcode::PIM_READRES ||
+                front.opcode == Opcode::PIM_COMPS_READRES)
                 buffer->reserve(front.dest_addr, buffer_id, front.size, 1);
 
             push_memory_request1(mem_request);
@@ -165,8 +196,10 @@ void NeuPIMSystolicWS::pim_ld_queue_cycle() {
     while (!_ld_inst_queue_for_pim.empty()) {
         Instruction &front = _ld_inst_queue_for_pim.front();
         // spdlog::info("{}", front.repr());
-        if (front.opcode == Opcode::PIM_HEADER || front.opcode == Opcode::PIM_GWRITE ||
-            front.opcode == Opcode::PIM_COMP || front.opcode == Opcode::PIM_READRES ||
+        if (front.opcode == Opcode::PIM_HEADER ||
+            front.opcode == Opcode::PIM_GWRITE ||
+            front.opcode == Opcode::PIM_COMP ||
+            front.opcode == Opcode::PIM_READRES ||
             front.opcode == Opcode::PIM_COMPS_READRES) {
             Sram *buffer;
             int buffer_id;
@@ -180,17 +213,21 @@ void NeuPIMSystolicWS::pim_ld_queue_cycle() {
 
             ast(!front.src_addrs.empty());
 
-            MemoryAccess *mem_request = TransToMemoryAccess(
-                front, _config.dram_req_size, _id, _core_cycle, buffer_id, StagePlatform::PIM);
+            MemoryAccess *mem_request =
+                TransToMemoryAccess(front, _config.dram_req_size, _id,
+                                    _core_cycle, buffer_id, StagePlatform::PIM);
 
-            if (front.opcode == Opcode::PIM_READRES || front.opcode == Opcode::PIM_COMPS_READRES)
+            if (front.opcode == Opcode::PIM_READRES ||
+                front.opcode == Opcode::PIM_COMPS_READRES)
                 buffer->reserve(front.dest_addr, buffer_id, front.size, 1);
 
             push_memory_request2(mem_request);
             _ld_inst_queue_for_pim.pop();
 
         } else {
-            assert(0);
+            spdlog::error("Invalid opcode in pim_ld_queue_cycle: {}",
+                          front.repr());
+            throw std::runtime_error("Invalid opcode in pim_ld_queue_cycle");
         }
     }
 }
@@ -211,13 +248,18 @@ void NeuPIMSystolicWS::st_queue_cycle() {
         }
         // spdlog::info("{}", front.repr());
         if (buffer->check_hit(front.dest_addr, buffer_id) &&
-            (front.opcode == Opcode::MOVOUT || front.opcode == Opcode::MOVOUT_POOL)) {
+            (front.opcode == Opcode::MOVOUT ||
+             front.opcode == Opcode::MOVOUT_POOL)) {
             auto accesses = MemoryAccess::from_instruction(
-                front, generate_mem_access_id(), _config.dram_req_size, MemoryAccessType::WRITE,
-                true, _id, _core_cycle, buffer_id, StagePlatform::SA);
+                front, generate_mem_access_id(), _config.dram_req_size,
+                MemoryAccessType::WRITE, true, _id, _core_cycle, buffer_id,
+                StagePlatform::SA);
             if (auto tile = front.parent_tile.lock()) {
+                assert(accesses.size() > 0);
                 tile->remaining_accum_io += accesses.size() - 1;
-                tile->stat.memory_writes += accesses.size() * AddressConfig::alignment;
+                add_stores(accesses.size() - 1);
+                tile->stat.memory_writes +=
+                    accesses.size() * AddressConfig::alignment;
             } else {
                 assert(0);
             }
@@ -246,13 +288,16 @@ void NeuPIMSystolicWS::pim_st_queue_cycle() {
         }
         // spdlog::info("{}", front.repr());
         if (buffer->check_hit(front.dest_addr, buffer_id) &&
-            (front.opcode == Opcode::MOVOUT || front.opcode == Opcode::MOVOUT_POOL)) {
+            (front.opcode == Opcode::MOVOUT ||
+             front.opcode == Opcode::MOVOUT_POOL)) {
             auto accesses = MemoryAccess::from_instruction(
-                front, generate_mem_access_id(), _config.dram_req_size, MemoryAccessType::WRITE,
-                true, _id, _core_cycle, buffer_id, StagePlatform::PIM);
+                front, generate_mem_access_id(), _config.dram_req_size,
+                MemoryAccessType::WRITE, true, _id, _core_cycle, buffer_id,
+                StagePlatform::PIM);
             if (auto tile = front.parent_tile.lock()) {
                 tile->remaining_accum_io += accesses.size() - 1;
-                tile->stat.memory_writes += accesses.size() * AddressConfig::alignment;
+                tile->stat.memory_writes +=
+                    accesses.size() * AddressConfig::alignment;
             } else {
                 assert(0);
             }
@@ -303,7 +348,8 @@ void NeuPIMSystolicWS::update_stats() {
             assert(0);
         }
         parent_tile->stat.compute_cycles++;
-        _stat.back().num_calculations += 128 * 8 * 2;  // apply systolic array count
+        _stat.back().num_calculations +=
+            128 * 8 * 2;  // apply systolic array count
     }
     for (auto &vector_pipeline : _vector_pipelines) {
         if (!vector_pipeline.empty()) {
@@ -386,15 +432,18 @@ cycle_type NeuPIMSystolicWS::get_vector_compute_cycles(Instruction &inst) {
     switch (inst.opcode) {
         case Opcode::LAYERNORM:
             add_tree = 2 * add_tree_iter * _config.add_tree_latency;
-            scalar_ops = 2 * _config.scalar_mul_latency + _config.scalar_sqrt_latency;
+            scalar_ops =
+                2 * _config.scalar_mul_latency + _config.scalar_sqrt_latency;
             // 1 addition, 1 subtraction, 1 division, 2 multiplication.
-            vector_ops = vec_op_iter * (2 * _config.add_latency + 3 * _config.mul_latency);
+            vector_ops = vec_op_iter *
+                         (2 * _config.add_latency + 3 * _config.mul_latency);
             return add_tree + scalar_ops + vector_ops;
         case Opcode::SOFTMAX:
             // 1 add tree, 1 compare tree
             add_tree = 2 * add_tree_iter * _config.add_tree_latency;
             vector_ops =
-                vec_op_iter * (_config.add_latency + _config.exp_latency + _config.mul_latency);
+                vec_op_iter * (_config.add_latency + _config.exp_latency +
+                               _config.mul_latency);
             return add_tree + vector_ops;
         case Opcode::ADD:
             return vec_op_iter * _config.add_latency;
@@ -402,13 +451,16 @@ cycle_type NeuPIMSystolicWS::get_vector_compute_cycles(Instruction &inst) {
             return vec_op_iter * _config.gelu_latency;
         case Opcode::DUMMY:
             return 1;
+        default:
+            assert(0);
     }
     spdlog::info("not configured operation. {}", inst.id);
     // assert(0);
     return 0;
 }
 
-cycle_type NeuPIMSystolicWS::calculate_add_tree_iterations(uint32_t vector_size) {
+cycle_type NeuPIMSystolicWS::calculate_add_tree_iterations(
+    uint32_t vector_size) {
     uint32_t calculation_unit = _config.vector_core_width;
     if (vector_size <= calculation_unit) {
         return 1;
@@ -428,8 +480,10 @@ void NeuPIMSystolicWS::issue_ex_inst(Instruction inst) {
         if (parent_tile == nullptr) {
             assert(0);
         }
-        // spdlog::info("COMPUTE Start cycle: {} inst:{}", _core_cycle, inst.repr());
-        parent_tile->stat.num_calculation += inst.tile_m * inst.tile_n * inst.tile_k;
+        // spdlog::info("COMPUTE Start cycle: {} inst:{}", _core_cycle,
+        // inst.repr());
+        parent_tile->stat.num_calculation +=
+            inst.tile_m * inst.tile_n * inst.tile_k;
 
         if (inst.opcode == Opcode::GEMM_PRELOAD) {
             _stat_systolic_preload_issue_count++;
@@ -438,7 +492,8 @@ void NeuPIMSystolicWS::issue_ex_inst(Instruction inst) {
             /* Preload can be hided */
             uint32_t offset = _compute_pipeline.back().size;
             // xxx why 4?
-            // maybe pushing to the systolic array input queue. 4 cycles to start?
+            // maybe pushing to the systolic array input queue. 4 cycles to
+            // start?
             offset = MAX(offset, 4);
             if (inst.opcode == Opcode::GEMM_PRELOAD) {
                 // State mul-pre
@@ -452,7 +507,8 @@ void NeuPIMSystolicWS::issue_ex_inst(Instruction inst) {
             if (inst.opcode == Opcode::GEMM_PRELOAD) {
                 /* Weight preload  from buffer latecny + WEight preload
                  * latency */
-                inst.start_cycle += _config.core_height + _config.core_height - 1;
+                inst.start_cycle +=
+                    _config.core_height + _config.core_height - 1;
             }
         }
 
@@ -461,10 +517,12 @@ void NeuPIMSystolicWS::issue_ex_inst(Instruction inst) {
         _compute_pipeline.push(inst);
         _stat_systolic_inst_issue_count++;
     } else if (inst.opcode == Opcode::COMP || inst.opcode == Opcode::IM2COL ||
-               inst.opcode == Opcode::LAYERNORM || inst.opcode == Opcode::SOFTMAX ||
-               inst.opcode == Opcode::ADD || inst.opcode == Opcode::GELU ||
+               inst.opcode == Opcode::LAYERNORM ||
+               inst.opcode == Opcode::SOFTMAX || inst.opcode == Opcode::ADD ||
+               inst.opcode == Opcode::GELU ||
                inst.opcode == Opcode::DUMMY) {  // vector unit compute
-        // spdlog::info("COMPUTE Start cycle: {} inst:{}", _core_cycle, inst.repr());
+        // spdlog::info("COMPUTE Start cycle: {} inst:{}", _core_cycle,
+        // inst.repr());
         std::queue<Instruction> *least_filled_vpu;
         cycle_type finish_cycle = std::numeric_limits<uint64_t>::max();
         for (auto &vector_pipeline : _vector_pipelines) {
@@ -489,8 +547,8 @@ void NeuPIMSystolicWS::issue_ex_inst(Instruction inst) {
             // } else {
             //     inst.start_cycle = _core_cycle;
             // }
-            // inst.finish_cycle = inst.start_cycle + get_vector_compute_cycles(inst);
-            // _vector_pipeline.push(inst);
+            // inst.finish_cycle = inst.start_cycle +
+            // get_vector_compute_cycles(inst); _vector_pipeline.push(inst);
         }
     }
 
@@ -504,13 +562,15 @@ void NeuPIMSystolicWS::issue_ex_inst(Instruction inst) {
     // _compute_pipeline to finish calculation
     else {
         // spdlog::info("reserve: {}", inst.repr());
-        // spdlog::info("reserve, dest_addr:{:x}, spad_id:{}, size:{}", inst.dest_addr,
+        // spdlog::info("reserve, dest_addr:{:x}, spad_id:{}, size:{}",
+        // inst.dest_addr,
         //  inst.accum_spad_id, inst.size);
         _acc_spad.reserve(inst.dest_addr, inst.accum_spad_id, inst.size, 1);
     }
 }
 
-cycle_type NeuPIMSystolicWS::calculate_vector_op_iterations(uint32_t vector_size) {
+cycle_type NeuPIMSystolicWS::calculate_vector_op_iterations(
+    uint32_t vector_size) {
     uint32_t calculation_unit = _config.vector_core_width;
     uint32_t ret = vector_size / calculation_unit;
     if (vector_size % calculation_unit != 0) {
@@ -536,8 +596,10 @@ void NeuPIMSystolicWS::pim_issue_ex_inst(Instruction inst) {
         if (parent_tile == nullptr) {
             assert(0);
         }
-        // spdlog::info("COMPUTE Start cycle: {} inst:{}", _core_cycle, inst.repr());
-        parent_tile->stat.num_calculation += inst.tile_m * inst.tile_n * inst.tile_k;
+        // spdlog::info("COMPUTE Start cycle: {} inst:{}", _core_cycle,
+        // inst.repr());
+        parent_tile->stat.num_calculation +=
+            inst.tile_m * inst.tile_n * inst.tile_k;
 
         if (inst.opcode == Opcode::GEMM_PRELOAD) {
             _stat_systolic_preload_issue_count++;
@@ -546,7 +608,8 @@ void NeuPIMSystolicWS::pim_issue_ex_inst(Instruction inst) {
             /* Preload can be hided */
             uint32_t offset = _compute_pipeline.back().size;
             // xxx why 4?
-            // maybe pushing to the systolic array input queue. 4 cycles to start?
+            // maybe pushing to the systolic array input queue. 4 cycles to
+            // start?
             offset = MAX(offset, 4);
             if (inst.opcode == Opcode::GEMM_PRELOAD) {
                 // State mul-pre
@@ -560,7 +623,8 @@ void NeuPIMSystolicWS::pim_issue_ex_inst(Instruction inst) {
             if (inst.opcode == Opcode::GEMM_PRELOAD) {
                 /* Weight preload  from buffer latecny + WEight preload
                  * latency */
-                inst.start_cycle += _config.core_height + _config.core_height - 1;
+                inst.start_cycle +=
+                    _config.core_height + _config.core_height - 1;
             }
         }
 
@@ -569,10 +633,12 @@ void NeuPIMSystolicWS::pim_issue_ex_inst(Instruction inst) {
         _compute_pipeline.push(inst);
         _stat_systolic_inst_issue_count++;
     } else if (inst.opcode == Opcode::COMP || inst.opcode == Opcode::IM2COL ||
-               inst.opcode == Opcode::LAYERNORM || inst.opcode == Opcode::SOFTMAX ||
-               inst.opcode == Opcode::ADD || inst.opcode == Opcode::GELU ||
+               inst.opcode == Opcode::LAYERNORM ||
+               inst.opcode == Opcode::SOFTMAX || inst.opcode == Opcode::ADD ||
+               inst.opcode == Opcode::GELU ||
                inst.opcode == Opcode::DUMMY) {  // vector unit compute
-        // spdlog::info("COMPUTE Start cycle: {} inst:{}", _core_cycle, inst.repr());
+        // spdlog::info("COMPUTE Start cycle: {} inst:{}", _core_cycle,
+        // inst.repr());
         std::queue<Instruction> *least_filled_vpu;
         cycle_type finish_cycle = std::numeric_limits<uint64_t>::max();
         for (auto &vector_pipeline : _vector_pipelines) {
@@ -597,8 +663,8 @@ void NeuPIMSystolicWS::pim_issue_ex_inst(Instruction inst) {
             // } else {
             //     inst.start_cycle = _core_cycle;
             // }
-            // inst.finish_cycle = inst.start_cycle + get_vector_compute_cycles(inst);
-            // _vector_pipeline.push(inst);
+            // inst.finish_cycle = inst.start_cycle +
+            // get_vector_compute_cycles(inst); _vector_pipeline.push(inst);
         }
     }
 
@@ -612,14 +678,15 @@ void NeuPIMSystolicWS::pim_issue_ex_inst(Instruction inst) {
     // _compute_pipeline to finish calculation
     else {
         // spdlog::info("reserve: {}", inst.repr());
-        // spdlog::info("reserve, dest_addr:{:x}, spad_id:{}, size:{}", inst.dest_addr,
+        // spdlog::info("reserve, dest_addr:{:x}, spad_id:{}, size:{}",
+        // inst.dest_addr,
         //  inst.accum_spad_id, inst.size);
         _pim_acc_spad.reserve(inst.dest_addr, inst.accum_spad_id, inst.size, 1);
     }
 }
 
-// TODO: execution instruction should need to issue multiple execution instructions for multiple
-// pipelines
+// TODO: execution instruction should need to issue multiple execution
+// instructions for multiple pipelines
 Instruction NeuPIMSystolicWS::get_first_ready_ex_inst() {
     Instruction inst = _ex_inst_queue_for_sa.front();
     if (can_issue_compute(inst)) {

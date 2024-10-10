@@ -182,8 +182,9 @@ Tile LayerNorm::initialize_instructions(uint32_t N) {
                 std::vector<addr_type>{sram_activation_offset, sram_gamma_base, sram_beta_base},
         });
         // -- save outputs --
-        std::vector<addr_type> output_addrs =
+        auto output_addrs =
             output_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
+        assert(output_addrs.size() > 0);
         tile.instructions.push_back(Instruction{
             .opcode = Opcode::MOVOUT,
             .dest_addr = sram_accumulation_offset,

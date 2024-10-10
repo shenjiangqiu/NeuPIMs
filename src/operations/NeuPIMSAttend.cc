@@ -138,16 +138,17 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                     .tile_k = seq_len,
                     .tile_n = seq_len,
                 });
-
+                auto output_addrs =
+                    std::static_pointer_cast<NPUTensor>(_outputs[i])
+                        ->_inners[h_idx]
+                        ->get_all_addrs();
+                assert(output_addrs.size() > 0);
                 // MOVOUT
                 tile.instructions.push_back(Instruction{
                     .opcode = Opcode::MOVOUT,
                     .dest_addr = sram_a_entry.first,
                     .size = sram_a_entry.second,
-                    .src_addrs =
-                        std::static_pointer_cast<NPUTensor>(_outputs[i])
-                            ->_inners[h_idx]
-                            ->get_all_addrs(),
+                    .src_addrs = std::move(output_addrs),
                     .operand_id = _OUTPUT_OPERAND,
                 });
             }
@@ -268,14 +269,17 @@ Tile NeuPIMSAttend::initialize_instructions(int start, int end) {
                         .size = sram_acc_entry.second,
                         .src_addrs = sram_readres_addrs[ti],
                     });
+                    auto output_addrs =
+                        std::static_pointer_cast<NPUTensor>(_outputs[i])
+                            ->_inners[hi]
+                            ->get_all_addrs();
+                    assert(output_addrs.size() > 0);
+
                     tile.instructions.push_back(Instruction{
                         .opcode = Opcode::MOVOUT,
                         .dest_addr = sram_acc_entry.first,
                         .size = sram_acc_entry.second,
-                        .src_addrs =
-                            std::static_pointer_cast<NPUTensor>(_outputs[i])
-                                ->_inners[hi]
-                                ->get_all_addrs(),
+                        .src_addrs = std::move(output_addrs),
                         .operand_id = _OUTPUT_OPERAND,
                     });
                 }

@@ -8,6 +8,7 @@
 #include "SystolicWS.h"
 #include "scheduler/NeuPIMScheduler.h"
 #include "scheduler/OrcaScheduler.h"
+#include "bindings.h"
 
 namespace fs = std::filesystem;
 
@@ -34,7 +35,8 @@ Simulator::Simulator(SimulationConfig config)
         _icnt = std::make_unique<SimpleInterconnect>(config);
 
     } else if (config.icnt_type == IcntType::BOOKSIM2) {
-        _icnt = std::make_unique<Booksim2Interconnect>(config);
+        // _icnt = std::make_unique<Booksim2Interconnect>(config);
+        assert(0);
     } else {
         assert(0);
     }
@@ -124,6 +126,7 @@ void Simulator::cycle() {
     SPDLOG_INFO("Simulation Start");
     while (running()) {
         // int model_id = 0;
+        update_global_on_cycle(_core_cycles);
 
         set_cycle_mask();
         // Core Cycle

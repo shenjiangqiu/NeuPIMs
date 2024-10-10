@@ -16,7 +16,11 @@ impl NoIcnt {
     }
 
     #[no_mangle]
-    pub extern "C" fn push(&mut self, src: u32, dest: u32, request: *const c_void) {}
+    pub extern "C" fn push(&mut self, src: u32, dest: u32, request: *const c_void) {
+        let _ = request;
+        let _ = dest;
+        let _ = src;
+    }
 }
 
 #[no_mangle]

@@ -109,6 +109,7 @@ Tile Add::initialize_instructions(uint32_t N) {
         });
         // -- save outputs --
         auto output_addrs = output_tensor->get_row_addrs(n_outer_offset + n_inner_offset);
+        assert(output_addrs.size() > 0);
         tile.instructions.push_back(Instruction{
             .opcode = Opcode::MOVOUT,
             .dest_addr = sram_accumulation_offset,

@@ -1,4 +1,4 @@
-cd build_release; make; cd ..;
+cd build_release; make -j; cd ..;
 
 # config file
 config=./configs/systolic_ws_128x128_dev.json

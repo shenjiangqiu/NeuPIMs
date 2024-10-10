@@ -22,8 +22,8 @@ addr_type NPUTensor2D::get_addr(std::vector<uint32_t> indexes) {
         return _base_addr + indexes[0] * _precision;
 
     // return _base_addr + (indexes[0] * _dims[1] + indexes[1]) * _precision;
-    return AddressConfig::switch_co_ch(_base_addr +
-                                       (indexes[0] * _dims[1] + indexes[1]) * _precision);
+    return AddressConfig::switch_co_ch(
+        _base_addr + (indexes[0] * _dims[1] + indexes[1]) * _precision);
 }
 
 std::vector<addr_type> NPUTensor2D::get_all_addrs() {
@@ -53,7 +53,8 @@ std::vector<addr_type> NPUTensor2D::get_row_addrs(uint32_t row_idx) {
     return ret;
 }
 
-std::vector<Ptr<NPUTensor2D>> NPUTensor2D::split_by_row(std::vector<uint32_t> row_dims) {
+std::vector<Ptr<NPUTensor2D>> NPUTensor2D::split_by_row(
+    std::vector<uint32_t> row_dims) {
     ast(_dims.size() == 2);
     ast(std::accumulate(row_dims.begin(), row_dims.end(), 0) == _dims[0]);
 

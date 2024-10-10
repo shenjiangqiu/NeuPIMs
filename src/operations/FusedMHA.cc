@@ -15,7 +15,8 @@ FusedMHA::FusedMHA(std::string name) : Operation(name) {}
  * output:
  *  (a1,...,an)
  */
-std::vector<Ptr<BTensor>> FusedMHA::get_outputs(std::vector<Ptr<BTensor>> inputs) {
+std::vector<Ptr<BTensor>> FusedMHA::get_outputs(
+    std::vector<Ptr<BTensor>> inputs) {
     set_as_parent_tensor(inputs);
 
     _inputs = inputs;
@@ -45,7 +46,8 @@ std::vector<Ptr<BTensor>> FusedMHA::get_outputs(std::vector<Ptr<BTensor>> inputs
     _dk = _query[0]->get_dims()[2];
 
     ast(_nh == Config::global_config.model_n_head / Config::global_config.n_tp);
-    ast(_dk == Config::global_config.model_n_embd / Config::global_config.model_n_head);
+    ast(_dk == Config::global_config.model_n_embd /
+                   Config::global_config.model_n_head);
 
     for (int i = 0; i < _batch_size; ++i) {
         auto q = _query[i];  // [h, q, dk]
@@ -59,9 +61,10 @@ std::vector<Ptr<BTensor>> FusedMHA::get_outputs(std::vector<Ptr<BTensor>> inputs
         // xxx
         std::vector<uint32_t> mha_output_dim{_nh, q_len, _dk};
         // std::vector<uint32_t> mha_output_dim{q_len, _dk * _nh};
-        spdlog::info("FusedMHA Q:{}, K:{}, V:{}", q->get_dims(), k->get_dims(), v->get_dims());
-        _outputs[i] = std::make_shared<NPUTensor>(_name + "_output", mha_output_dim,
-                                                  NPUTensorBufType::ACT, false);
+        spdlog::info("FusedMHA Q:{}, K:{}, V:{}", q->get_dims(), k->get_dims(),
+                     v->get_dims());
+        _outputs[i] = std::make_shared<NPUTensor>(
+            _name + "_output", mha_output_dim, NPUTensorBufType::ACT, false);
     }
 
     // todo tiling and instruction initialization.
@@ -93,7 +96,8 @@ void FusedMHA::initialize_tiles() {
     }
 }
 
-void FusedMHA::initialize_instructions(Tile &tile, int req_idx, int head_idx, int num_heads) {
+void FusedMHA::initialize_instructions(Tile &tile, int req_idx, int head_idx,
+                                       int num_heads) {
     // req_idx in batch
     // head_idx # start idx
     // num_heads
@@ -101,8 +105,10 @@ void FusedMHA::initialize_instructions(Tile &tile, int req_idx, int head_idx, in
     auto seq_len = _key[req_idx]->get_dims()[2];
 
     addr_type sram_query_base = SPAD_BASE;
-    addr_type sram_key_base = sram_query_base + q_len * _dk * num_heads * _config.precision;
-    addr_type sram_value_base = sram_key_base + _dk * seq_len * num_heads * _config.precision;
+    addr_type sram_key_base =
+        sram_query_base + q_len * _dk * num_heads * _config.precision;
+    addr_type sram_value_base =
+        sram_key_base + _dk * seq_len * num_heads * _config.precision;
     addr_type sram_logit_base = ACCUM_SPAD_BASE;  // for logits
     addr_type sram_accumulation_base =
         sram_logit_base + q_len * seq_len * num_heads * _config.precision;
@@ -110,32 +116,41 @@ void FusedMHA::initialize_instructions(Tile &tile, int req_idx, int head_idx, in
     for (int h_ofs = 0; h_ofs < num_heads; h_ofs++) {
         unsigned h_idx = head_idx + h_ofs;
 
-        addr_type sram_q_ofs = sram_query_base + h_ofs * (q_len * _dk) * _config.precision;
-        addr_type sram_k_ofs = sram_key_base + h_ofs * (_dk * seq_len) * _config.precision;
-        addr_type sram_v_ofs = sram_value_base + h_ofs * (_dk * seq_len) * _config.precision;
-        addr_type sram_l_ofs = sram_logit_base + h_ofs * (q_len * seq_len) * _config.precision;
-        addr_type sram_acc_ofs = sram_accumulation_base + h_ofs * (q_len * _dk) * _config.precision;
+        addr_type sram_q_ofs =
+            sram_query_base + h_ofs * (q_len * _dk) * _config.precision;
+        addr_type sram_k_ofs =
+            sram_key_base + h_ofs * (_dk * seq_len) * _config.precision;
+        addr_type sram_v_ofs =
+            sram_value_base + h_ofs * (_dk * seq_len) * _config.precision;
+        addr_type sram_l_ofs =
+            sram_logit_base + h_ofs * (q_len * seq_len) * _config.precision;
+        addr_type sram_acc_ofs =
+            sram_accumulation_base + h_ofs * (q_len * _dk) * _config.precision;
 
-        std::vector<addr_type> dram_query_addrs;  // = _query[req_idx]->get_all_addrs();
-        std::vector<addr_type> dram_key_addrs;    // = _key[req_idx]->get_all_addrs();
+        std::vector<addr_type>
+            dram_query_addrs;  // = _query[req_idx]->get_all_addrs();
+        std::vector<addr_type>
+            dram_key_addrs;  // = _key[req_idx]->get_all_addrs();
         std::vector<addr_type> dram_value_addrs;
 
         for (unsigned i = 0; i < _dk; i++) {
             for (unsigned seq_idx = 0; seq_idx < seq_len; seq_idx++) {
                 // key:  h, d_k, seq_len
-                dram_key_addrs.push_back(
-                    _key[req_idx]->get_addr(std::vector<uint32_t>{h_idx, i, seq_idx}));
+                dram_key_addrs.push_back(_key[req_idx]->get_addr(
+                    std::vector<uint32_t>{h_idx, i, seq_idx}));
 
                 // value: h, seq_len, d_k
-                dram_value_addrs.push_back(
-                    _value[req_idx]->get_addr(std::vector<uint32_t>{h_idx, seq_idx, i}));
+                dram_value_addrs.push_back(_value[req_idx]->get_addr(
+                    std::vector<uint32_t>{h_idx, seq_idx, i}));
 
                 if (q_len == 1 && seq_idx > 0) continue;
-                dram_query_addrs.push_back(_query[req_idx]->get_addr(
-                    std::vector<uint32_t>{h_idx, seq_idx, i}));  /// num_heads, 1, dk
+                dram_query_addrs.push_back(
+                    _query[req_idx]->get_addr(std::vector<uint32_t>{
+                        h_idx, seq_idx, i}));  /// num_heads, 1, dk
             }
 
-            // dram_key_addrs.push_back(_key[req_idx]->get_addr(std::vector<uint32_t>{h_idx, i}));
+            // dram_key_addrs.push_back(_key[req_idx]->get_addr(std::vector<uint32_t>{h_idx,
+            // i}));
             // dram_value_addrs.push_back(_value[req_idx]->get_addr(std::vector<uint32_t>{h_idx,
             // i}));
         }
@@ -207,15 +222,17 @@ void FusedMHA::initialize_instructions(Tile &tile, int req_idx, int head_idx, in
             .tile_n = q_len,
             .src_from_accum = true,
         });
-
+        auto output_addrs =
+            std::static_pointer_cast<NPUTensor>(_outputs[req_idx])
+                ->_inners[h_idx]
+                ->get_all_addrs();
+        assert(output_addrs.size() > 0);
         // MOVOUT
         tile.instructions.push_back(Instruction{
             .opcode = Opcode::MOVOUT,
             .dest_addr = output_ofs,
             .size = q_len * _dk * _config.precision,
-            .src_addrs = std::move(std::static_pointer_cast<NPUTensor>(_outputs[req_idx])
-                                       ->_inners[h_idx]
-                                       ->get_all_addrs()),
+            .src_addrs = std::move(output_addrs),
             .operand_id = _OUTPUT_OPERAND,
         });
     }
@@ -250,7 +267,8 @@ void FusedMHA::calculate_loops() {
         uint32_t q_len = q->get_dims()[1];  // seq_len or 1
         uint32_t seq_len = k->get_dims()[2];
 
-        uint32_t total_size_per_head = 2 * q_len * _dk + 2 * _dk * seq_len + seq_len * q_len;
+        uint32_t total_size_per_head =
+            2 * q_len * _dk + 2 * _dk * seq_len + seq_len * q_len;
         total_size_per_head *= _config.precision;  // unit: byte
 
         uint32_t sram_capacity = _config.spad_size KB / 2;  // unit: byte
@@ -260,7 +278,8 @@ void FusedMHA::calculate_loops() {
 
         spdlog::info("({}) heads_per_tile: {}", i, heads_per_tile);
         spdlog::info("q_len: {}, seq_len: {}, dk: {}", q_len, seq_len, _dk);
-        spdlog::info("sram capacity: {}, one head size: {}", sram_capacity, total_size_per_head);
+        spdlog::info("sram capacity: {}, one head size: {}", sram_capacity,
+                     total_size_per_head);
 
         //
         _heads_per_tile.push_back(heads_per_tile);

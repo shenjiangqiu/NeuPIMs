@@ -10,9 +10,11 @@ uint32_t generate_mem_access_id() {
 }
 
 namespace AddressConfig {
-addr_type alignment = Config::global_config.dram_req_size;  // BL * dev width / 8 bytes
-addr_type channel_mask;                                     // not used
-addr_type channel_offset;                                   // not used
+addr_type alignment =
+    Config::global_config.dram_req_size *
+    Config::global_config.dram_channels;  // BL * dev width / 8 bytes
+addr_type channel_mask;                   // not used
+addr_type channel_offset;                 // not used
 }  // namespace AddressConfig
 
 int MemoryAccess::req_count = 0;
@@ -32,7 +34,8 @@ addr_type AddressConfig::switch_co_ch(addr_type addr) {
     const int num_ch_bits = 5;
     const int num_offset = 6;
 
-    const addr_type ch_mask = ((1 << num_ch_bits) - 1) << (num_col_bits + num_offset);
+    const addr_type ch_mask = ((1 << num_ch_bits) - 1)
+                              << (num_col_bits + num_offset);
     const addr_type col_mask = ((1 << num_col_bits) - 1) << num_offset;
 
     const addr_type mask = ch_mask | col_mask;
@@ -65,16 +68,16 @@ addr_type AddressConfig::allocate_address(uint32_t size) {
 
 addr_type AddressConfig::align(addr_type addr) {
     addr_type aligned_addr = addr - (addr & (alignment - 1));
-    // spdlog::info("align address!! {}", fmt::format("{:#X} to {:#X}", addr, aligned_addr));
+    // spdlog::info("align address!! {}", fmt::format("{:#X} to {:#X}", addr,
+    // aligned_addr));
 
     return aligned_addr;
 }
 
-std::vector<MemoryAccess *> MemoryAccess::from_instruction(Instruction &inst, uint32_t id,
-                                                           uint32_t size, MemoryAccessType req_type,
-                                                           bool request, uint32_t core_id,
-                                                           cycle_type start_cycle, int buffer_id,
-                                                           StagePlatform stage_platform) {
+std::vector<MemoryAccess *> MemoryAccess::from_instruction(
+    Instruction &inst, uint32_t id, uint32_t size, MemoryAccessType req_type,
+    bool request, uint32_t core_id, cycle_type start_cycle, int buffer_id,
+    StagePlatform stage_platform) {
     static addr_type const_addr = 0;
     const addr_type max_address = Config::global_config.model_n_embd *
                                   Config::global_config.model_n_embd * 5 * 2 /
@@ -87,7 +90,8 @@ std::vector<MemoryAccess *> MemoryAccess::from_instruction(Instruction &inst, ui
         if (const_addr >= max_address) {
             const_addr = 0;
         }
-        aligned_src_addrs.insert(AddressConfig::align(AddressConfig::switch_co_ch(const_addr)));
+        aligned_src_addrs.insert(
+            AddressConfig::align(AddressConfig::switch_co_ch(const_addr)));
     }
 
     std::vector<MemoryAccess *> ret;
@@ -153,8 +157,8 @@ SimulationConfig initialize_config(json config) {
     else if ((std::string)config["core_type"] == "systolic_ws")
         parsed_config.core_type = CoreType::SYSTOLIC_WS;
     else
-        throw std::runtime_error(
-            fmt::format("Not implemented core type {} ", (std::string)config["core_type"]));
+        throw std::runtime_error(fmt::format("Not implemented core type {} ",
+                                             (std::string)config["core_type"]));
     parsed_config.core_freq = config["core_freq"];
     parsed_config.core_width = config["core_width"];
     parsed_config.core_height = config["core_height"];
@@ -180,7 +184,8 @@ SimulationConfig initialize_config(json config) {
     parsed_config.accum_spad_size = config["sram_size"];
 
     /* log config*/
-    parsed_config.operation_log_output_path = config["operation_log_output_path"];
+    parsed_config.operation_log_output_path =
+        config["operation_log_output_path"];
 
     /* Icnt config */
     if ((std::string)config["icnt_type"] == "simple")
@@ -188,10 +193,11 @@ SimulationConfig initialize_config(json config) {
     else if ((std::string)config["icnt_type"] == "booksim2")
         parsed_config.icnt_type = IcntType::BOOKSIM2;
     else
-        throw std::runtime_error(
-            fmt::format("Not implemented icnt type {} ", (std::string)config["icnt_type"]));
+        throw std::runtime_error(fmt::format("Not implemented icnt type {} ",
+                                             (std::string)config["icnt_type"]));
     parsed_config.icnt_freq = config["icnt_freq"];
-    if (config.contains("icnt_latency")) parsed_config.icnt_latency = config["icnt_latency"];
+    if (config.contains("icnt_latency"))
+        parsed_config.icnt_latency = config["icnt_latency"];
     if (config.contains("icnt_config_path"))
         parsed_config.icnt_config_path = config["icnt_config_path"];
 
@@ -213,7 +219,8 @@ void initialize_memory_config(std::string mem_config_path) {
         Config::global_config.dram_type = DramType::NEUPIMS;
     else
         throw std::runtime_error(
-            fmt::format("Not implemented dram type {} ", (std::string)mem_config["dram_type"]));
+            fmt::format("Not implemented dram type {} ",
+                        (std::string)mem_config["dram_type"]));
     Config::global_config.dram_freq = mem_config["dram_freq"];
 
     Config::global_config.dram_channels = mem_config["dram_channels"];
@@ -225,13 +232,16 @@ void initialize_memory_config(std::string mem_config_path) {
         Config::global_config.pim_config_path = mem_config["pim_config_path"];
         // DRAM row buffer size (in bytes)
         Config::global_config.dram_page_size = mem_config["dram_page_size"];
-        Config::global_config.dram_banks_per_ch = mem_config["dram_banks_per_ch"];
+        Config::global_config.dram_banks_per_ch =
+            mem_config["dram_banks_per_ch"];
         // # params per PIM_COMP command
-        Config::global_config.pim_comp_coverage = mem_config["pim_comp_coverage"];
+        Config::global_config.pim_comp_coverage =
+            mem_config["pim_comp_coverage"];
     }
 
     Config::global_config.HBM_size = (uint64_t)(mem_config["HBM_size"])GB;
-    Config::global_config.HBM_act_buf_size = (uint64_t)(mem_config["HBM_act_buf_size"])MB;
+    Config::global_config.HBM_act_buf_size =
+        (uint64_t)(mem_config["HBM_act_buf_size"])MB;
 }
 
 void initialize_client_config(std::string cli_config_path) {
@@ -239,10 +249,13 @@ void initialize_client_config(std::string cli_config_path) {
 
     // json cli_config = load_config(cli_config_path);
     // /* Client config */
-    // Config::global_config.request_dataset_path = cli_config["request_dataset_path"];
-    // Config::global_config.request_input_seq_len = cli_config["request_input_seq_len"];
+    // Config::global_config.request_dataset_path =
+    // cli_config["request_dataset_path"];
+    // Config::global_config.request_input_seq_len =
+    // cli_config["request_input_seq_len"];
     // Config::global_config.request_interval = cli_config["request_interval"];
-    // Config::global_config.request_total_cnt = cli_config["request_total_cnt"];
+    // Config::global_config.request_total_cnt =
+    // cli_config["request_total_cnt"];
 }
 
 void initialize_model_config(std::string model_config_path) {
@@ -423,9 +436,9 @@ void ast(bool cond) {
     // exit(-1);
 }
 
-MemoryAccess *TransToMemoryAccess(Instruction &inst, uint32_t size, uint32_t core_id,
-                                  cycle_type start_cycle, int buffer_id,
-                                  StagePlatform stage_platform) {
+MemoryAccess *TransToMemoryAccess(Instruction &inst, uint32_t size,
+                                  uint32_t core_id, cycle_type start_cycle,
+                                  int buffer_id, StagePlatform stage_platform) {
     MemoryAccessType req_type;
     switch (inst.opcode) {
         case Opcode::PIM_HEADER:
@@ -451,7 +464,8 @@ MemoryAccess *TransToMemoryAccess(Instruction &inst, uint32_t size, uint32_t cor
             break;
         default:
             req_type = MemoryAccessType::SIZE;
-            spdlog::error("Fail to translate unknown Instruction to MemoryAccessType");
+            spdlog::error(
+                "Fail to translate unknown Instruction to MemoryAccessType");
             break;
     }
 
@@ -484,8 +498,8 @@ int LogBase2(int power_of_two) {
     return i;
 }
 
-uint64_t AddressConfig::make_address(int channel, int rank, int bankgroup, int bank, int row,
-                                     int col) {
+uint64_t AddressConfig::make_address(int channel, int rank, int bankgroup,
+                                     int bank, int row, int col) {
     // rorabgbachco
     // HBM2_8Gb_s128_pim.ini
     uint64_t addr = 0;
@@ -517,10 +531,13 @@ uint64_t AddressConfig::make_address(int channel, int rank, int bankgroup, int b
 
     addr <<= offset;
 
-    // spdlog::info("(make_address) hexaddr: {}, ch:{}, ra:{}, bg:{}, ba:{}, ro:{}, co:{}",
-    //              fmt::format("{:#X}", addr), channel, rank, bankgroup, bank, row, col);
+    // spdlog::info("(make_address) hexaddr: {}, ch:{}, ra:{}, bg:{}, ba:{},
+    // ro:{}, co:{}",
+    //              fmt::format("{:#X}", addr), channel, rank, bankgroup, bank,
+    //              row, col);
     // uint64_t address =
-    //     memory_system_.config_->MakeAddress(channel, rank, bankgroup, bank, row, col);
+    //     memory_system_.config_->MakeAddress(channel, rank, bankgroup, bank,
+    //     row, col);
     // if (address == addr)
     //     PrintError("SUCCESS");
     // else
@@ -529,8 +546,8 @@ uint64_t AddressConfig::make_address(int channel, int rank, int bankgroup, int b
     return addr;
 }
 
-uint64_t AddressConfig::encode_pim_header(int channel, int row, bool for_gwrite, int num_comps,
-                                          int num_readres) {
+uint64_t AddressConfig::encode_pim_header(int channel, int row, bool for_gwrite,
+                                          int num_comps, int num_readres) {
     int gwrite_bit = for_gwrite ? 1 : 0;
 
     // we can use only 4 bits for column bit
@@ -538,11 +555,12 @@ uint64_t AddressConfig::encode_pim_header(int channel, int row, bool for_gwrite,
     int log_comps = (gwrite_bit << 3) + LogBase2(num_comps);
     int log_readres = LogBase2(num_readres);
 
-    return make_address(channel, log_readres / 16, (log_readres / 4) & 3, log_readres % 4, row,
-                        log_comps);
+    return make_address(channel, log_readres / 16, (log_readres / 4) & 3,
+                        log_readres % 4, row, log_comps);
 }
 
-uint64_t AddressConfig::encode_pim_comps_readres(int ch, int row, int num_comps, bool last_cmd) {
+uint64_t AddressConfig::encode_pim_comps_readres(int ch, int row, int num_comps,
+                                                 bool last_cmd) {
     int ra_bits = 1;
     int bg_bits = 2;
     int ba_bits = 2;
@@ -565,8 +583,9 @@ uint64_t AddressConfig::encode_pim_comps_readres(int ch, int row, int num_comps,
 // used for sub-batch interleaving
 std::string stageToString(Stage stage) {
     static const std::map<Stage, std::string> stageMap = {
-        {Stage::A, "A"}, {Stage::B, "B"}, {Stage::C, "C"},           {Stage::D, "D"},
-        {Stage::E, "E"}, {Stage::F, "F"}, {Stage::Finish, "Finish"},
+        {Stage::A, "A"},           {Stage::B, "B"}, {Stage::C, "C"},
+        {Stage::D, "D"},           {Stage::E, "E"}, {Stage::F, "F"},
+        {Stage::Finish, "Finish"},
     };
 
     auto it = stageMap.find(stage);

@@ -12,7 +12,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/extern)
 set(CMAKE_CXX_STANDARD 17)
 set(ONNX_ML 1)
 set(JSON_BuildTests OFF CACHE INTERNAL "")
-
+add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=1)
 message("BINARY DIR ${CMAKE_BINARY_DIR}")
 
 # For debug
@@ -25,7 +25,24 @@ message("BINARY DIR ${CMAKE_BINARY_DIR}")
 #     message("Debug mode")
 # endif()
 # Build source
+include(FetchContent)
+FetchContent_Declare(
+    Corrosion
+    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+    GIT_TAG v0.5 # Optionally specify a commit hash, version tag or branch here
+)
+# Set any global configuration variables such as `Rust_TOOLCHAIN` before this line!
+FetchContent_MakeAvailable(Corrosion)
 
+corrosion_import_crate(MANIFEST_PATH "src/rust/neupimrust/Cargo.toml")
+# Create an interface library (no source files)
+add_library(rust_i INTERFACE)
+
+# Add include directories
+target_include_directories(rust_i INTERFACE src/rust/neupimrust/)
+
+# Link to an external library (e.g., MyLibrary)
+target_link_libraries(rust_i INTERFACE neupimrust)
 
 
 # Add library NewtonSim
