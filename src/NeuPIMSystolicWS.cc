@@ -54,7 +54,8 @@ void NeuPIMSystolicWS::systolic_cycle() {
             bool is_pim = tile->stage_platform == StagePlatform::PIM;
             tile->remaining_accum_io--;
             if (!is_pim)
-                if (!sjq_rust::reduce_stores(global_counts_ctx, 1)) {
+                if (!sjq_rust::reduce_stores(global_counts_ctx, 1,
+                                             _core_cycle)) {
                     spdlog::error("reduce_stores failed");
                     throw std::runtime_error("reduce_stores failed");
                 }
@@ -97,7 +98,8 @@ void NeuPIMSystolicWS::vector_unit_cycle() {
                 auto is_pim = tile->stage_platform == StagePlatform::PIM;
                 tile->remaining_accum_io--;
                 if (!is_pim)
-                    if (!sjq_rust::reduce_stores(global_counts_ctx, 1)) {
+                    if (!sjq_rust::reduce_stores(global_counts_ctx, 1,
+                                                 _core_cycle)) {
                         spdlog::error("reduce_stores failed");
                         throw std::runtime_error("reduce_stores failed");
                     }
@@ -148,7 +150,8 @@ void NeuPIMSystolicWS::ld_queue_cycle() {
             if (auto tile = front.parent_tile.lock()) {
                 assert(accesses.size() > 0);
                 tile->remaining_loads += accesses.size() - 1;
-                sjq_rust::add_loads(global_counts_ctx, accesses.size() - 1);
+                sjq_rust::add_loads(global_counts_ctx, accesses.size() - 1,
+                                    _core_cycle);
                 tile->stat.memory_reads +=
                     accesses.size() * AddressConfig::alignment;
             } else {
@@ -264,7 +267,8 @@ void NeuPIMSystolicWS::st_queue_cycle() {
             if (auto tile = front.parent_tile.lock()) {
                 assert(accesses.size() > 0);
                 tile->remaining_accum_io += accesses.size() - 1;
-                sjq_rust::add_stores(global_counts_ctx, accesses.size() - 1);
+                sjq_rust::add_stores(global_counts_ctx, accesses.size() - 1,
+                                     _core_cycle);
                 tile->stat.memory_writes +=
                     accesses.size() * AddressConfig::alignment;
             } else {

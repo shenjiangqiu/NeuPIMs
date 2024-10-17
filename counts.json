@@ -1,1515 +1,1735 @@
 {
-  "global_loads": 0,
-  "global_stores": 0,
-  "global_computes": 0,
-  "last_start_load_cycle": null,
-  "last_start_store_cycle": null,
-  "last_start_compute_cycle": null,
-  "last_idle_load_cycle": 789457,
-  "last_idle_store_cycle": 789490,
-  "last_idle_compute_cycle": 789486,
-  "load_idle_cycles_hist": {
-    "2": 1,
-    "16": 1,
-    "24": 1,
-    "29": 1,
-    "38": 1,
-    "39": 1,
-    "50": 1,
-    "61": 1,
-    "76": 1,
-    "100": 1,
-    "114": 1,
-    "115": 1,
-    "135": 1,
-    "137": 1,
-    "147": 1,
-    "157": 1,
-    "165": 1,
-    "212": 1,
-    "448": 1,
-    "10292": 1,
-    "10298": 1,
-    "10302": 1,
-    "10318": 1,
-    "31946": 1,
-    "39121": 1,
-    "39733": 1,
-    "39850": 1,
-    "39951": 1,
-    "39996": 1,
-    "40002": 1,
-    "40075": 1,
-    "40087": 1,
-    "44355": 1,
-    "47748": 1,
-    "76294": 1,
-    "183528": 1
+  "current_counts": {
+    "loads": 0,
+    "stores": 0,
+    "computes": 0
   },
-  "store_idle_cycles_hist": {
-    "2": 31,
-    "3": 1,
-    "13340": 1,
-    "45251": 1,
-    "47723": 1,
-    "152065": 1
+  "current_stage": "A",
+  "current_status": {
+    "loads": {
+      "Idle": 789451
+    },
+    "stores": {
+      "Idle": 789484
+    },
+    "computes": {
+      "Idle": 0
+    },
+    "load_or_stores": {
+      "Idle": 789484
+    }
   },
-  "compute_idle_cycles_hist": {
-    "2": 1,
-    "6": 28,
-    "7": 1,
-    "8": 1,
-    "326": 1,
-    "13344": 1,
-    "45255": 1,
-    "47727": 1,
-    "152069": 1
+  "idle_histo": {
+    "loads": {
+      "15": 1,
+      "23": 1,
+      "28": 1,
+      "37": 1,
+      "38": 1,
+      "49": 1,
+      "60": 1,
+      "75": 1,
+      "99": 1,
+      "113": 1,
+      "114": 1,
+      "134": 1,
+      "136": 1,
+      "146": 1,
+      "156": 1,
+      "164": 1,
+      "211": 1,
+      "447": 1,
+      "10291": 1,
+      "10297": 1,
+      "10301": 1,
+      "10317": 1,
+      "31944": 1,
+      "39120": 1,
+      "39732": 1,
+      "39849": 1,
+      "39950": 1,
+      "39995": 1,
+      "40001": 1,
+      "40074": 1,
+      "40086": 1,
+      "44353": 1,
+      "47746": 1,
+      "76292": 1,
+      "183526": 1
+    },
+    "stores": {
+      "1": 31,
+      "13338": 1,
+      "45249": 1,
+      "47721": 1,
+      "152063": 1
+    },
+    "computes": {},
+    "load_or_stores": {
+      "1": 31,
+      "13338": 1,
+      "45249": 1,
+      "47721": 1,
+      "152063": 1
+    }
   },
-  "load_cycles_hist": {
-    "75": 1,
-    "92": 1,
-    "96": 1,
-    "102": 1,
-    "208": 1,
-    "258": 1,
-    "270": 1,
-    "311": 1,
-    "341": 1,
-    "343": 1,
-    "347": 1,
-    "349": 1,
-    "394": 1,
-    "460": 1,
-    "492": 1,
-    "558": 1,
-    "612": 1,
-    "716": 1,
-    "737": 1,
-    "743": 1,
-    "912": 1,
-    "1108": 1,
-    "1136": 1,
-    "1224": 1,
-    "1544": 1,
-    "1566": 1,
-    "1668": 1,
-    "1889": 1,
-    "1899": 1,
-    "1903": 1,
-    "1958": 1,
-    "2372": 1,
-    "2438": 1,
-    "2741": 1,
-    "2845": 1,
-    "8789": 1
+  "busy_histo": {
+    "loads": {
+      "76": 1,
+      "93": 1,
+      "97": 1,
+      "103": 1,
+      "209": 1,
+      "259": 1,
+      "271": 1,
+      "312": 1,
+      "342": 1,
+      "344": 1,
+      "348": 1,
+      "350": 1,
+      "395": 1,
+      "461": 1,
+      "493": 1,
+      "559": 1,
+      "613": 1,
+      "717": 1,
+      "738": 1,
+      "744": 1,
+      "913": 1,
+      "1109": 1,
+      "1137": 1,
+      "1225": 1,
+      "1545": 1,
+      "1567": 1,
+      "1669": 1,
+      "1890": 1,
+      "1900": 1,
+      "1904": 1,
+      "1959": 1,
+      "2373": 1,
+      "2439": 1,
+      "2742": 1,
+      "2846": 1,
+      "8790": 1
+    },
+    "stores": {
+      "467": 1,
+      "481": 1,
+      "487": 1,
+      "624": 1,
+      "671": 1,
+      "750": 1,
+      "939": 1,
+      "972": 1,
+      "1559": 1,
+      "1665": 1,
+      "1879": 1,
+      "1926": 1,
+      "1996": 1,
+      "2013": 1,
+      "2025": 1,
+      "2447": 1,
+      "2487": 1,
+      "2778": 1,
+      "2871": 1,
+      "8817": 1,
+      "10392": 1,
+      "10393": 3,
+      "32152": 3,
+      "32201": 1,
+      "40344": 7,
+      "40592": 1
+    },
+    "computes": {},
+    "load_or_stores": {
+      "467": 1,
+      "481": 1,
+      "487": 1,
+      "624": 1,
+      "671": 1,
+      "750": 1,
+      "939": 1,
+      "972": 1,
+      "1559": 1,
+      "1665": 1,
+      "1879": 1,
+      "1926": 1,
+      "1996": 1,
+      "2013": 1,
+      "2025": 1,
+      "2447": 1,
+      "2487": 1,
+      "2778": 1,
+      "2871": 1,
+      "8817": 1,
+      "10392": 1,
+      "10393": 3,
+      "32152": 3,
+      "32201": 1,
+      "40344": 7,
+      "40592": 1
+    }
   },
-  "store_cycles_hist": {
-    "466": 1,
-    "480": 1,
-    "486": 1,
-    "623": 1,
-    "670": 1,
-    "749": 1,
-    "938": 1,
-    "971": 1,
-    "1558": 1,
-    "1664": 1,
-    "1878": 1,
-    "1925": 1,
-    "1995": 1,
-    "2012": 1,
-    "2024": 1,
-    "2446": 1,
-    "2486": 1,
-    "2777": 1,
-    "2870": 1,
-    "8816": 1,
-    "10391": 1,
-    "10392": 3,
-    "32151": 3,
-    "32200": 1,
-    "40343": 7,
-    "40591": 1
+  "busy_cycles": {
+    "loads": 0,
+    "stores": 0,
+    "computes": 0,
+    "load_or_stores": 0
   },
-  "compute_cycles_hist": {
-    "462": 1,
-    "476": 1,
-    "482": 1,
-    "614": 1,
-    "619": 1,
-    "666": 1,
-    "745": 1,
-    "967": 1,
-    "1554": 1,
-    "1660": 1,
-    "1874": 1,
-    "1921": 1,
-    "1989": 1,
-    "2008": 1,
-    "2020": 1,
-    "2442": 1,
-    "2482": 1,
-    "2773": 1,
-    "2866": 1,
-    "8812": 1,
-    "10387": 1,
-    "10388": 3,
-    "32147": 3,
-    "32196": 1,
-    "40339": 7,
-    "40587": 1
+  "idle_cycles": {
+    "loads": 0,
+    "stores": 0,
+    "computes": 0,
+    "load_or_stores": 0
   },
-  "accumulated_duration_load_cycle": 43496,
-  "accumulated_duration_store_cycle": 531046,
-  "accumulated_duration_compute_cycle": 530580,
-  "accumulated_idle_load_cycle": 745961,
-  "accumulated_idle_store_cycle": 258444,
-  "accumulated_idle_compute_cycle": 258906,
   "event_vec": [
     {
-      "StartLoadIdle": 0
+      "cycle": 0,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartStoreIdle": 0
+      "cycle": 0,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartComputeIdle": 0
+      "cycle": 0,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartLoad": 2
+      "cycle": 348,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartStore": 2
+      "cycle": 481,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartCompute": 2
+      "cycle": 481,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndLoadIdle": 2
+      "cycle": 482,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStoreIdle": 2
+      "cycle": 482,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndComputeIdle": 2
+      "cycle": 482,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartLoadIdle": 349
+      "cycle": 691,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndLoad": 349
+      "cycle": 32634,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartComputeIdle": 478
+      "cycle": 32634,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndCompute": 478
+      "cycle": 32637,
+      "stage": "A",
+      "event": "StageEnd"
     },
     {
-      "StartStoreIdle": 482
+      "cycle": 32635,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStore": 482
+      "cycle": 32635,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoad": 484
+      "cycle": 32635,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartStore": 484
+      "cycle": 33128,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartCompute": 484
+      "cycle": 33574,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndLoadIdle": 484
+      "cycle": 33574,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStoreIdle": 484
+      "cycle": 33575,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndComputeIdle": 484
+      "cycle": 33575,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoadIdle": 692
+      "cycle": 33575,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "EndLoad": 692
+      "cycle": 34313,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartComputeIdle": 32631
+      "cycle": 65776,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndCompute": 32631
+      "cycle": 65776,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "StartStoreIdle": 32635
+      "cycle": 217842,
+      "stage": "B",
+      "event": "StageEnd"
     },
     {
-      "EndStore": 32635
+      "cycle": 217839,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StageEnd": [
-        "A",
-        32637
-      ]
+      "cycle": 217839,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoad": 32638
+      "cycle": 217839,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartStore": 32638
+      "cycle": 217932,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartCompute": 32638
+      "cycle": 228232,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndLoadIdle": 32638
+      "cycle": 228232,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStoreIdle": 32638
+      "cycle": 228233,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndComputeIdle": 32638
+      "cycle": 228233,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoadIdle": 33130
+      "cycle": 228233,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "EndLoad": 33130
+      "cycle": 230137,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartComputeIdle": 33252
+      "cycle": 230159,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndCompute": 33252
+      "cycle": 230159,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "StartStoreIdle": 33576
+      "cycle": 230160,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStore": 33576
+      "cycle": 230160,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoad": 33578
+      "cycle": 230160,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartStore": 33578
+      "cycle": 231829,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartCompute": 33578
+      "cycle": 232039,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndLoadIdle": 33578
+      "cycle": 232039,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStoreIdle": 33578
+      "cycle": 232040,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndComputeIdle": 33578
+      "cycle": 232040,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoadIdle": 34315
+      "cycle": 232040,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "EndLoad": 34315
+      "cycle": 232784,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartComputeIdle": 65774
+      "cycle": 272632,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndCompute": 65774
+      "cycle": 272632,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "StartStoreIdle": 65778
+      "cycle": 272633,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStore": 65778
+      "cycle": 272633,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StageEnd": [
-        "B",
-        217842
-      ]
+      "cycle": 272633,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartLoad": 217843
+      "cycle": 272945,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartStore": 217843
+      "cycle": 273100,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartCompute": 217843
+      "cycle": 273100,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndLoadIdle": 217843
+      "cycle": 273101,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStoreIdle": 217843
+      "cycle": 273101,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndComputeIdle": 217843
+      "cycle": 273101,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartLoadIdle": 217935
+      "cycle": 274326,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndLoad": 217935
+      "cycle": 313445,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartComputeIdle": 228231
+      "cycle": 313445,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndCompute": 228231
+      "cycle": 313446,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartStoreIdle": 228235
+      "cycle": 313446,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndStore": 228235
+      "cycle": 313446,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartLoad": 228237
+      "cycle": 316188,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartStore": 228237
+      "cycle": 316224,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartCompute": 228237
+      "cycle": 316224,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndLoadIdle": 228237
+      "cycle": 316225,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStoreIdle": 228237
+      "cycle": 316225,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndComputeIdle": 228237
+      "cycle": 316225,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartLoadIdle": 230140
+      "cycle": 318598,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndLoad": 230140
+      "cycle": 318672,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartComputeIdle": 230158
+      "cycle": 318672,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndCompute": 230158
+      "cycle": 318673,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartStoreIdle": 230162
+      "cycle": 318673,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndStore": 230162
+      "cycle": 318673,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartLoad": 230164
+      "cycle": 319810,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartStore": 230164
+      "cycle": 350825,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartCompute": 230164
+      "cycle": 350825,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndLoadIdle": 230164
+      "cycle": 364167,
+      "stage": "C",
+      "event": "StageEnd"
     },
     {
-      "EndStoreIdle": 230164
+      "cycle": 364163,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndComputeIdle": 230164
+      "cycle": 364163,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoadIdle": 231832
+      "cycle": 364163,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "EndLoad": 231832
+      "cycle": 364266,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartComputeIdle": 232038
+      "cycle": 374556,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndCompute": 232038
+      "cycle": 374556,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "StartStoreIdle": 232042
+      "cycle": 374557,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStore": 232042
+      "cycle": 374557,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoad": 232044
+      "cycle": 374557,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartStore": 232044
+      "cycle": 383347,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartCompute": 232044
+      "cycle": 383374,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndLoadIdle": 232044
+      "cycle": 383374,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStoreIdle": 232044
+      "cycle": 383375,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndComputeIdle": 232044
+      "cycle": 383375,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoadIdle": 232787
+      "cycle": 383375,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "EndLoad": 232787
+      "cycle": 384920,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartComputeIdle": 272631
+      "cycle": 384934,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndCompute": 272631
+      "cycle": 384934,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "StartStoreIdle": 272635
+      "cycle": 384935,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStore": 272635
+      "cycle": 384935,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoad": 272637
+      "cycle": 384935,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartStore": 272637
+      "cycle": 385548,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartCompute": 272637
+      "cycle": 425279,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndLoadIdle": 272637
+      "cycle": 425279,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStoreIdle": 272637
+      "cycle": 425280,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndComputeIdle": 272637
+      "cycle": 425280,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoadIdle": 272948
+      "cycle": 425280,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "EndLoad": 272948
+      "cycle": 426847,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartComputeIdle": 273099
+      "cycle": 426945,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndCompute": 273099
+      "cycle": 426945,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "StartStoreIdle": 273103
+      "cycle": 426946,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStore": 273103
+      "cycle": 426946,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoad": 273105
+      "cycle": 426946,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartStore": 273105
+      "cycle": 427296,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartCompute": 273105
+      "cycle": 467290,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndLoadIdle": 273105
+      "cycle": 467290,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStoreIdle": 273105
+      "cycle": 467291,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndComputeIdle": 273105
+      "cycle": 467291,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoadIdle": 274329
+      "cycle": 467291,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "EndLoad": 274329
+      "cycle": 469730,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartComputeIdle": 313444
+      "cycle": 469778,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndCompute": 313444
+      "cycle": 469778,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "StartStoreIdle": 313448
+      "cycle": 469779,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStore": 313448
+      "cycle": 469779,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoad": 313450
+      "cycle": 469779,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartStore": 313450
+      "cycle": 471679,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartCompute": 313450
+      "cycle": 471792,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndLoadIdle": 313450
+      "cycle": 471792,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStoreIdle": 313450
+      "cycle": 471793,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndComputeIdle": 313450
+      "cycle": 471793,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoadIdle": 316191
+      "cycle": 471793,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "EndLoad": 316191
+      "cycle": 472902,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartComputeIdle": 316223
+      "cycle": 503945,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndCompute": 316223
+      "cycle": 503945,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "StartStoreIdle": 316227
+      "cycle": 549199,
+      "stage": "D",
+      "event": "StageEnd"
     },
     {
-      "EndStore": 316227
+      "cycle": 549194,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoad": 316229
+      "cycle": 549194,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartStore": 316229
+      "cycle": 549194,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartCompute": 316229
+      "cycle": 549291,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndLoadIdle": 316229
+      "cycle": 559587,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndStoreIdle": 316229
+      "cycle": 559587,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndComputeIdle": 316229
+      "cycle": 559588,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoadIdle": 318601
+      "cycle": 559588,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndLoad": 318601
+      "cycle": 559588,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartComputeIdle": 318671
+      "cycle": 561547,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndCompute": 318671
+      "cycle": 561584,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartStoreIdle": 318675
+      "cycle": 561584,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStore": 318675
+      "cycle": 561585,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoad": 318677
+      "cycle": 561585,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartStore": 318677
+      "cycle": 561585,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartCompute": 318677
+      "cycle": 563475,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndLoadIdle": 318677
+      "cycle": 563610,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndStoreIdle": 318677
+      "cycle": 563610,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndComputeIdle": 318677
+      "cycle": 563611,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoadIdle": 319813
+      "cycle": 563611,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndLoad": 319813
+      "cycle": 563611,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartComputeIdle": 350824
+      "cycle": 564006,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndCompute": 350824
+      "cycle": 603955,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartStoreIdle": 350828
+      "cycle": 603955,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStore": 350828
+      "cycle": 603956,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StageEnd": [
-        "C",
-        364167
-      ]
+      "cycle": 603956,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoad": 364168
+      "cycle": 603956,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartStore": 364168
+      "cycle": 604417,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartCompute": 364168
+      "cycle": 604580,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndLoadIdle": 364168
+      "cycle": 604580,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStoreIdle": 364168
+      "cycle": 604581,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndComputeIdle": 364168
+      "cycle": 604581,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoadIdle": 364270
+      "cycle": 604581,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "EndLoad": 364270
+      "cycle": 604925,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartComputeIdle": 374556
+      "cycle": 644925,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndCompute": 374556
+      "cycle": 644925,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "StartStoreIdle": 374560
+      "cycle": 644926,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "EndStore": 374560
+      "cycle": 644926,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartLoad": 374562
+      "cycle": 644926,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartStore": 374562
+      "cycle": 647772,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "StartCompute": 374562
+      "cycle": 647797,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndLoadIdle": 374562
+      "cycle": 647797,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStoreIdle": 374562
+      "cycle": 695524,
+      "stage": "E",
+      "event": "StageEnd"
     },
     {
-      "EndComputeIdle": 374562
+      "cycle": 695518,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoadIdle": 383351
+      "cycle": 695518,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndLoad": 383351
+      "cycle": 695518,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartComputeIdle": 383374
+      "cycle": 695594,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndCompute": 383374
+      "cycle": 705910,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartStoreIdle": 383378
+      "cycle": 705910,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStore": 383378
+      "cycle": 705911,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoad": 383380
+      "cycle": 705911,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartStore": 383380
+      "cycle": 705911,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartCompute": 383380
+      "cycle": 706824,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndLoadIdle": 383380
+      "cycle": 706883,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndStoreIdle": 383380
+      "cycle": 706883,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndComputeIdle": 383380
+      "cycle": 706884,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoadIdle": 384924
+      "cycle": 706884,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndLoad": 384924
+      "cycle": 706884,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartComputeIdle": 384934
+      "cycle": 707443,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndCompute": 384934
+      "cycle": 707555,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartStoreIdle": 384938
+      "cycle": 707555,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStore": 384938
+      "cycle": 707556,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoad": 384940
+      "cycle": 707556,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartStore": 384940
+      "cycle": 707556,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartCompute": 384940
+      "cycle": 707827,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndLoadIdle": 384940
+      "cycle": 747900,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndStoreIdle": 384940
+      "cycle": 747900,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndComputeIdle": 384940
+      "cycle": 747901,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoadIdle": 385552
+      "cycle": 747901,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndLoad": 385552
+      "cycle": 747901,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartComputeIdle": 425279
+      "cycle": 748243,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndCompute": 425279
+      "cycle": 748388,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartStoreIdle": 425283
+      "cycle": 748388,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStore": 425283
+      "cycle": 748389,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoad": 425285
+      "cycle": 748389,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "StartStore": 425285
+      "cycle": 748389,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartCompute": 425285
+      "cycle": 748648,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndLoadIdle": 425285
+      "cycle": 788733,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "EndStoreIdle": 425285
+      "cycle": 788733,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndComputeIdle": 425285
+      "cycle": 788734,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Load"
+      }
     },
     {
-      "StartLoadIdle": 426851
+      "cycle": 788734,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "LoadOrStore"
+      }
     },
     {
-      "EndLoad": 426851
+      "cycle": 788734,
+      "stage": "A",
+      "event": {
+        "MemEventStart": "Store"
+      }
     },
     {
-      "StartComputeIdle": 426945
+      "cycle": 789451,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Load"
+      }
     },
     {
-      "EndCompute": 426945
+      "cycle": 789484,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "Store"
+      }
     },
     {
-      "StartStoreIdle": 426949
+      "cycle": 789484,
+      "stage": "A",
+      "event": {
+        "MemEventEnd": "LoadOrStore"
+      }
     },
     {
-      "EndStore": 426949
-    },
-    {
-      "StartLoad": 426951
-    },
-    {
-      "StartStore": 426951
-    },
-    {
-      "StartCompute": 426951
-    },
-    {
-      "EndLoadIdle": 426951
-    },
-    {
-      "EndStoreIdle": 426951
-    },
-    {
-      "EndComputeIdle": 426951
-    },
-    {
-      "StartLoadIdle": 427300
-    },
-    {
-      "EndLoad": 427300
-    },
-    {
-      "StartComputeIdle": 467290
-    },
-    {
-      "EndCompute": 467290
-    },
-    {
-      "StartStoreIdle": 467294
-    },
-    {
-      "EndStore": 467294
-    },
-    {
-      "StartLoad": 467296
-    },
-    {
-      "StartStore": 467296
-    },
-    {
-      "StartCompute": 467296
-    },
-    {
-      "EndLoadIdle": 467296
-    },
-    {
-      "EndStoreIdle": 467296
-    },
-    {
-      "EndComputeIdle": 467296
-    },
-    {
-      "StartLoadIdle": 469734
-    },
-    {
-      "EndLoad": 469734
-    },
-    {
-      "StartComputeIdle": 469778
-    },
-    {
-      "EndCompute": 469778
-    },
-    {
-      "StartStoreIdle": 469782
-    },
-    {
-      "EndStore": 469782
-    },
-    {
-      "StartLoad": 469784
-    },
-    {
-      "StartStore": 469784
-    },
-    {
-      "StartCompute": 469784
-    },
-    {
-      "EndLoadIdle": 469784
-    },
-    {
-      "EndStoreIdle": 469784
-    },
-    {
-      "EndComputeIdle": 469784
-    },
-    {
-      "StartLoadIdle": 471683
-    },
-    {
-      "EndLoad": 471683
-    },
-    {
-      "StartComputeIdle": 471792
-    },
-    {
-      "EndCompute": 471792
-    },
-    {
-      "StartStoreIdle": 471796
-    },
-    {
-      "EndStore": 471796
-    },
-    {
-      "StartLoad": 471798
-    },
-    {
-      "StartStore": 471798
-    },
-    {
-      "StartCompute": 471798
-    },
-    {
-      "EndLoadIdle": 471798
-    },
-    {
-      "EndStoreIdle": 471798
-    },
-    {
-      "EndComputeIdle": 471798
-    },
-    {
-      "StartLoadIdle": 472906
-    },
-    {
-      "EndLoad": 472906
-    },
-    {
-      "StartComputeIdle": 503945
-    },
-    {
-      "EndCompute": 503945
-    },
-    {
-      "StartStoreIdle": 503949
-    },
-    {
-      "EndStore": 503949
-    },
-    {
-      "StageEnd": [
-        "D",
-        549199
-      ]
-    },
-    {
-      "StartLoad": 549200
-    },
-    {
-      "StartStore": 549200
-    },
-    {
-      "StartCompute": 549200
-    },
-    {
-      "EndLoadIdle": 549200
-    },
-    {
-      "EndStoreIdle": 549200
-    },
-    {
-      "EndComputeIdle": 549200
-    },
-    {
-      "StartLoadIdle": 549296
-    },
-    {
-      "EndLoad": 549296
-    },
-    {
-      "StartComputeIdle": 559588
-    },
-    {
-      "EndCompute": 559588
-    },
-    {
-      "StartStoreIdle": 559592
-    },
-    {
-      "EndStore": 559592
-    },
-    {
-      "StartLoad": 559594
-    },
-    {
-      "StartStore": 559594
-    },
-    {
-      "StartCompute": 559594
-    },
-    {
-      "EndLoadIdle": 559594
-    },
-    {
-      "EndStoreIdle": 559594
-    },
-    {
-      "EndComputeIdle": 559594
-    },
-    {
-      "StartLoadIdle": 561552
-    },
-    {
-      "EndLoad": 561552
-    },
-    {
-      "StartComputeIdle": 561583
-    },
-    {
-      "EndCompute": 561583
-    },
-    {
-      "StartStoreIdle": 561589
-    },
-    {
-      "EndStore": 561589
-    },
-    {
-      "StartLoad": 561591
-    },
-    {
-      "StartStore": 561591
-    },
-    {
-      "StartCompute": 561591
-    },
-    {
-      "EndLoadIdle": 561591
-    },
-    {
-      "EndStoreIdle": 561591
-    },
-    {
-      "EndComputeIdle": 561591
-    },
-    {
-      "StartLoadIdle": 563480
-    },
-    {
-      "EndLoad": 563480
-    },
-    {
-      "StartComputeIdle": 563611
-    },
-    {
-      "EndCompute": 563611
-    },
-    {
-      "StartStoreIdle": 563615
-    },
-    {
-      "EndStore": 563615
-    },
-    {
-      "StartLoad": 563617
-    },
-    {
-      "StartStore": 563617
-    },
-    {
-      "StartCompute": 563617
-    },
-    {
-      "EndLoadIdle": 563617
-    },
-    {
-      "EndStoreIdle": 563617
-    },
-    {
-      "EndComputeIdle": 563617
-    },
-    {
-      "StartLoadIdle": 564011
-    },
-    {
-      "EndLoad": 564011
-    },
-    {
-      "StartComputeIdle": 603956
-    },
-    {
-      "EndCompute": 603956
-    },
-    {
-      "StartStoreIdle": 603960
-    },
-    {
-      "EndStore": 603960
-    },
-    {
-      "StartLoad": 603962
-    },
-    {
-      "StartStore": 603962
-    },
-    {
-      "StartCompute": 603962
-    },
-    {
-      "EndLoadIdle": 603962
-    },
-    {
-      "EndStoreIdle": 603962
-    },
-    {
-      "EndComputeIdle": 603962
-    },
-    {
-      "StartLoadIdle": 604422
-    },
-    {
-      "EndLoad": 604422
-    },
-    {
-      "StartComputeIdle": 604581
-    },
-    {
-      "EndCompute": 604581
-    },
-    {
-      "StartStoreIdle": 604585
-    },
-    {
-      "EndStore": 604585
-    },
-    {
-      "StartLoad": 604587
-    },
-    {
-      "StartStore": 604587
-    },
-    {
-      "StartCompute": 604587
-    },
-    {
-      "EndLoadIdle": 604587
-    },
-    {
-      "EndStoreIdle": 604587
-    },
-    {
-      "EndComputeIdle": 604587
-    },
-    {
-      "StartLoadIdle": 604930
-    },
-    {
-      "EndLoad": 604930
-    },
-    {
-      "StartComputeIdle": 644926
-    },
-    {
-      "EndCompute": 644926
-    },
-    {
-      "StartStoreIdle": 644930
-    },
-    {
-      "EndStore": 644930
-    },
-    {
-      "StartLoad": 644932
-    },
-    {
-      "StartStore": 644932
-    },
-    {
-      "StartCompute": 644932
-    },
-    {
-      "EndLoadIdle": 644932
-    },
-    {
-      "EndStoreIdle": 644932
-    },
-    {
-      "EndComputeIdle": 644932
-    },
-    {
-      "StartLoadIdle": 647777
-    },
-    {
-      "EndLoad": 647777
-    },
-    {
-      "StartComputeIdle": 647798
-    },
-    {
-      "EndCompute": 647798
-    },
-    {
-      "StartStoreIdle": 647802
-    },
-    {
-      "EndStore": 647802
-    },
-    {
-      "StageEnd": [
-        "E",
-        695524
-      ]
-    },
-    {
-      "StartLoad": 695525
-    },
-    {
-      "StartStore": 695525
-    },
-    {
-      "StartCompute": 695525
-    },
-    {
-      "EndLoadIdle": 695525
-    },
-    {
-      "EndStoreIdle": 695525
-    },
-    {
-      "EndComputeIdle": 695525
-    },
-    {
-      "StartLoadIdle": 695600
-    },
-    {
-      "EndLoad": 695600
-    },
-    {
-      "StartComputeIdle": 705912
-    },
-    {
-      "EndCompute": 705912
-    },
-    {
-      "StartStoreIdle": 705916
-    },
-    {
-      "EndStore": 705916
-    },
-    {
-      "StartLoad": 705918
-    },
-    {
-      "StartStore": 705918
-    },
-    {
-      "StartCompute": 705918
-    },
-    {
-      "EndLoadIdle": 705918
-    },
-    {
-      "EndStoreIdle": 705918
-    },
-    {
-      "EndComputeIdle": 705918
-    },
-    {
-      "StartLoadIdle": 706830
-    },
-    {
-      "EndLoad": 706830
-    },
-    {
-      "StartComputeIdle": 706885
-    },
-    {
-      "EndCompute": 706885
-    },
-    {
-      "StartStoreIdle": 706889
-    },
-    {
-      "EndStore": 706889
-    },
-    {
-      "StartLoad": 706891
-    },
-    {
-      "StartStore": 706891
-    },
-    {
-      "StartCompute": 706891
-    },
-    {
-      "EndLoadIdle": 706891
-    },
-    {
-      "EndStoreIdle": 706891
-    },
-    {
-      "EndComputeIdle": 706891
-    },
-    {
-      "StartLoadIdle": 707449
-    },
-    {
-      "EndLoad": 707449
-    },
-    {
-      "StartComputeIdle": 707557
-    },
-    {
-      "EndCompute": 707557
-    },
-    {
-      "StartStoreIdle": 707561
-    },
-    {
-      "EndStore": 707561
-    },
-    {
-      "StartLoad": 707563
-    },
-    {
-      "StartStore": 707563
-    },
-    {
-      "StartCompute": 707563
-    },
-    {
-      "EndLoadIdle": 707563
-    },
-    {
-      "EndStoreIdle": 707563
-    },
-    {
-      "EndComputeIdle": 707563
-    },
-    {
-      "StartLoadIdle": 707833
-    },
-    {
-      "EndLoad": 707833
-    },
-    {
-      "StartComputeIdle": 747902
-    },
-    {
-      "EndCompute": 747902
-    },
-    {
-      "StartStoreIdle": 747906
-    },
-    {
-      "EndStore": 747906
-    },
-    {
-      "StartLoad": 747908
-    },
-    {
-      "StartStore": 747908
-    },
-    {
-      "StartCompute": 747908
-    },
-    {
-      "EndLoadIdle": 747908
-    },
-    {
-      "EndStoreIdle": 747908
-    },
-    {
-      "EndComputeIdle": 747908
-    },
-    {
-      "StartLoadIdle": 748249
-    },
-    {
-      "EndLoad": 748249
-    },
-    {
-      "StartComputeIdle": 748390
-    },
-    {
-      "EndCompute": 748390
-    },
-    {
-      "StartStoreIdle": 748394
-    },
-    {
-      "EndStore": 748394
-    },
-    {
-      "StartLoad": 748396
-    },
-    {
-      "StartStore": 748396
-    },
-    {
-      "StartCompute": 748396
-    },
-    {
-      "EndLoadIdle": 748396
-    },
-    {
-      "EndStoreIdle": 748396
-    },
-    {
-      "EndComputeIdle": 748396
-    },
-    {
-      "StartLoadIdle": 748654
-    },
-    {
-      "EndLoad": 748654
-    },
-    {
-      "StartComputeIdle": 788735
-    },
-    {
-      "EndCompute": 788735
-    },
-    {
-      "StartStoreIdle": 788739
-    },
-    {
-      "EndStore": 788739
-    },
-    {
-      "StartLoad": 788741
-    },
-    {
-      "StartStore": 788741
-    },
-    {
-      "StartCompute": 788741
-    },
-    {
-      "EndLoadIdle": 788741
-    },
-    {
-      "EndStoreIdle": 788741
-    },
-    {
-      "EndComputeIdle": 788741
-    },
-    {
-      "StartLoadIdle": 789457
-    },
-    {
-      "EndLoad": 789457
-    },
-    {
-      "StartComputeIdle": 789486
-    },
-    {
-      "EndCompute": 789486
-    },
-    {
-      "StartStoreIdle": 789490
-    },
-    {
-      "EndStore": 789490
-    },
-    {
-      "StageEnd": [
-        "F",
-        789492
-      ]
+      "cycle": 789492,
+      "stage": "F",
+      "event": "StageEnd"
     }
   ],
   "last_cycle": 789493,
-  "all_loads": 175665,
-  "all_stores": 129126,
-  "all_computes": 29696
+  "all_counts": {
+    "loads": 175665,
+    "stores": 129126,
+    "computes": 29696
+  }
 }

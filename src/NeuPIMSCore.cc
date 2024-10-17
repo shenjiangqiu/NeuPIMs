@@ -172,7 +172,7 @@ void NeuPIMSCore::issue(Tile &in_tile) {
                 // Increment the remaining loads counter and push the
                 // instruction to the load instruction queue
                 tile->remaining_loads++;
-                sjq_rust::add_loads(global_counts_ctx, 1);
+                sjq_rust::add_loads(global_counts_ctx, 1, _core_cycle);
                 _ld_inst_queue_for_sa.push(inst);
             } else {
                 // Log failure to allocate space in the buffer and assert
@@ -190,12 +190,12 @@ void NeuPIMSCore::issue(Tile &in_tile) {
                    inst.opcode == Opcode::MOVOUT_POOL) {
             // Handle MOVOUT and MOVOUT_POOL opcodes
             tile->remaining_accum_io++;
-            sjq_rust::add_stores(global_counts_ctx, 1);
+            sjq_rust::add_stores(global_counts_ctx, 1, _core_cycle);
             _st_inst_queue_for_sa.push(inst);
         } else {
             // Handle other opcodes
             tile->remaining_accum_io++;
-            sjq_rust::add_stores(global_counts_ctx, 1);
+            sjq_rust::add_stores(global_counts_ctx, 1, _core_cycle);
             tile->remaining_computes++;
             sjq_rust::add_computes(global_counts_ctx, 1);
             _ex_inst_queue_for_sa.push(inst);
@@ -437,7 +437,8 @@ void NeuPIMSCore::push_memory_response(MemoryAccess *response) {
             tile->remaining_accum_io--;
             // fix here, only systolic array need this
             if (!is_pim) {
-                if (!sjq_rust::reduce_stores(global_counts_ctx, 1)) {
+                if (!sjq_rust::reduce_stores(global_counts_ctx, 1,
+                                             _core_cycle)) {
                     spdlog::error("reduce_stores failed");
                     throw std::runtime_error("reduce_stores failed");
                 }
@@ -445,7 +446,8 @@ void NeuPIMSCore::push_memory_response(MemoryAccess *response) {
 
         } else {
             if (!is_pim) {
-                if (!sjq_rust::reduce_loads(global_counts_ctx, 1)) {
+                if (!sjq_rust::reduce_loads(global_counts_ctx, 1,
+                                            _core_cycle)) {
                     spdlog::error("reduce_loads failed");
                     throw std::runtime_error("reduce_loads failed");
                 }

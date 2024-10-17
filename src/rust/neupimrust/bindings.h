@@ -62,14 +62,14 @@ void add_computes(GlobalCountsCtx *ctx, uint64_t computes);
 /// # 参数
 ///
 /// * `loads` - 要增加的加载操作数量
-void add_loads(GlobalCountsCtx *ctx, uint64_t loads);
+void add_loads(GlobalCountsCtx *ctx, uint64_t loads, uint64_t cycle);
 
 /// 增加存储操作的计数
 ///
 /// # 参数
 ///
 /// * `stores` - 要增加的存储操作数量
-void add_stores(GlobalCountsCtx *ctx, uint64_t stores);
+void add_stores(GlobalCountsCtx *ctx, uint64_t stores, uint64_t cycle);
 
 void delete_icnt(NoIcnt *ptr);
 
@@ -103,13 +103,6 @@ const Settings *get_settings();
 ///
 /// 返回当前的存储操作总数
 uint64_t get_stores(const GlobalCountsCtx *ctx);
-
-/// 获取所有操作的总计数
-///
-/// # 返回值
-///
-/// 返回加载、存储和计算操作的总和
-uint64_t get_total(const GlobalCountsCtx *ctx);
 
 size_t get_total_packages(const NoIcnt *self);
 
@@ -163,7 +156,8 @@ bool reduce_computes(GlobalCountsCtx *ctx,
 ///
 /// 如果减少操作成功，返回`true`；如果减少操作会导致计数变为负值，返回`false`
 bool reduce_loads(GlobalCountsCtx *ctx,
-                  uint64_t loads);
+                  uint64_t loads,
+                  uint64_t cycle);
 
 /// 减少存储操作的计数
 ///
@@ -175,13 +169,13 @@ bool reduce_loads(GlobalCountsCtx *ctx,
 ///
 /// 如果减少操作成功，返回`true`；如果减少操作会导致计数变为负值，返回`false`
 bool reduce_stores(GlobalCountsCtx *ctx,
-                   uint64_t stores);
+                   uint64_t stores,
+                   uint64_t cycle);
 
 /// 保存累计的数据到文件
 void save_global_counts_to_file(const GlobalCountsCtx *ctx);
 
-/// 更新全局计数上下文
-void update_global_on_cycle(GlobalCountsCtx *counts, uint64_t cycle);
+void update_last_cycle(GlobalCountsCtx *ctx, uint64_t cycle);
 
 void update_stage(GlobalCountsCtx *ctx, RunStage stage, uint64_t cycle);
 

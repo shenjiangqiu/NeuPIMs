@@ -128,7 +128,6 @@ void Simulator::cycle() {
     SPDLOG_INFO("Simulation Start");
     while (running()) {
         // int model_id = 0;
-        sjq_rust::update_global_on_cycle(global_counts_ctx, _core_cycles);
 
         set_cycle_mask();
         // Core Cycle
@@ -194,6 +193,7 @@ void Simulator::cycle() {
                 // <<< todo: support 2 sub-batch
                 _cores[core_id]->cycle();
             }
+            sjq_rust::update_last_cycle(global_counts_ctx, _core_cycles);
             _core_cycles++;
         }
 

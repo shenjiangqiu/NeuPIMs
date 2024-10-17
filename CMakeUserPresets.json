@@ -5,7 +5,6 @@
     },
     "include": [
         "build/CMakePresets.json",
-        "build_release/CMakePresets.json",
-        "build_rel_dbg/CMakePresets.json"
+        "build_release/CMakePresets.json"
     ]
 }

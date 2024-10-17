@@ -60,7 +60,7 @@ use std::{collections::BTreeMap, fs::File};
 use tracing::{error, info};
 
 #[derive(Serialize)]
-enum MemStatus {
+pub enum MemStatus {
     Idle(u64),
     Busy(u64),
 }
@@ -125,6 +125,11 @@ pub struct GlobalCountsCtx {
     pub last_cycle: u64,
     /// 累计的操作次数
     pub all_counts: Counts,
+}
+
+#[no_mangle]
+pub extern "C" fn update_last_cycle(ctx: &mut GlobalCountsCtx, cycle: u64) {
+    ctx.last_cycle = cycle;
 }
 
 /// 创建一个新的`GlobalCountsCtx`。
@@ -420,7 +425,7 @@ pub extern "C" fn reduce_loads(ctx: &mut GlobalCountsCtx, loads: u64, cycle: u64
                             .or_default() += 1;
                         ctx.current_status.load_or_stores = MemStatus::Idle(cycle);
                         ctx.event_vec.push(Event {
-                            cycle: ctx.last_cycle,
+                            cycle: cycle,
                             stage: ctx.current_stage,
                             event: EventType::MemEventEnd(MemOp::LoadOrStore),
                         });
@@ -445,13 +450,51 @@ pub extern "C" fn reduce_loads(ctx: &mut GlobalCountsCtx, loads: u64, cycle: u64
 ///
 /// 如果减少操作成功，返回`true`；如果减少操作会导致计数变为负值，返回`false`
 #[no_mangle]
-pub extern "C" fn reduce_stores(ctx: &mut GlobalCountsCtx, stores: u64) -> bool {
+pub extern "C" fn reduce_stores(ctx: &mut GlobalCountsCtx, stores: u64, cycle: u64) -> bool {
     if ctx.current_counts.stores < stores {
         error!("错误：尝试将GLOBAL_STORES减少到负值");
         return false;
     }
     ctx.current_counts.stores -= stores;
-    
+
+    if ctx.current_counts.stores == 0 {
+        match ctx.current_status.stores {
+            MemStatus::Busy(start_cycle) => {
+                let busy_duration = cycle - start_cycle;
+                *ctx.busy_histo
+                    .stores
+                    .entry(Cycle(busy_duration))
+                    .or_default() += 1;
+                ctx.current_status.stores = MemStatus::Idle(cycle);
+                ctx.event_vec.push(Event {
+                    cycle: cycle,
+                    stage: ctx.current_stage,
+                    event: EventType::MemEventEnd(MemOp::Store),
+                });
+
+                match (
+                    &ctx.current_status.load_or_stores,
+                    &ctx.current_status.loads,
+                ) {
+                    (MemStatus::Busy(start_cycle), MemStatus::Idle(_)) => {
+                        let busy_duration = cycle - start_cycle;
+                        *ctx.busy_histo
+                            .load_or_stores
+                            .entry(Cycle(busy_duration))
+                            .or_default() += 1;
+                        ctx.current_status.load_or_stores = MemStatus::Idle(cycle);
+                        ctx.event_vec.push(Event {
+                            cycle: cycle,
+                            stage: ctx.current_stage,
+                            event: EventType::MemEventEnd(MemOp::LoadOrStore),
+                        });
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+    }
 
     true
 }
@@ -477,7 +520,6 @@ pub extern "C" fn reduce_computes(ctx: &mut GlobalCountsCtx, computes: u64) -> b
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     #[test]
     fn test_save() {
         // let file = File::create("counts_test.json").expect("无法创建文件");

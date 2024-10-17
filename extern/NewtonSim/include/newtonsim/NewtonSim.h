@@ -5,7 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
-
+#include <cstdint>
 namespace dramsim3 {
 class Config;
 class BaseDRAMSystem;

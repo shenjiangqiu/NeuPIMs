@@ -6,7 +6,7 @@ fn main() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let cbindgen_toml = Path::new(&crate_dir).join("cbindgen.toml");
 
-    println!("cargo:rerun-if-changed={}", cbindgen_toml.display());
+    // println!("cargo:rerun-if-changed={}", cbindgen_toml.display());
 
     cbindgen::Builder::new()
         .with_config(
