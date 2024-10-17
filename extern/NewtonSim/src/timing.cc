@@ -11,7 +11,7 @@ Timing::Timing(const Config& config)
       other_bankgroups_same_rank(static_cast<int>(CommandType::SIZE)),
       other_ranks(static_cast<int>(CommandType::SIZE)),
       same_rank(static_cast<int>(CommandType::SIZE)) {
-    const Settings* sjq_config = get_settings();
+    const sjq_rust::Settings* sjq_config = sjq_rust::get_settings();
     auto no_conflict_act_to_gact = sjq_config->no_conflict_act_to_gact;
     auto no_conflict_gact_to_act = sjq_config->no_conflict_gact_to_act;
 

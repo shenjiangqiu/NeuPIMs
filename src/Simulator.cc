@@ -6,10 +6,10 @@
 #include "NeuPIMSystolicWS.h"
 #include "SystolicOS.h"
 #include "SystolicWS.h"
+#include "bindings.h"
 #include "scheduler/NeuPIMScheduler.h"
 #include "scheduler/OrcaScheduler.h"
-#include "bindings.h"
-
+sjq_rust::GlobalCountsCtx *global_counts_ctx = nullptr;
 namespace fs = std::filesystem;
 
 Simulator::Simulator(SimulationConfig config)
@@ -77,6 +77,8 @@ void Simulator::run(std::string model_name) {
 
 void Simulator::update_stage_stat() {
     Stage done_stage = _scheduler->get_prev_stage();
+    sjq_rust::end_stage(global_counts_ctx, from_stage(done_stage),
+                        _core_cycles);
     _dram->log(done_stage);
 
     _stage_stats.push_back(StageStat{.stage = done_stage,
@@ -126,7 +128,7 @@ void Simulator::cycle() {
     SPDLOG_INFO("Simulation Start");
     while (running()) {
         // int model_id = 0;
-        update_global_on_cycle(_core_cycles);
+        sjq_rust::update_global_on_cycle(global_counts_ctx, _core_cycles);
 
         set_cycle_mask();
         // Core Cycle

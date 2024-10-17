@@ -12,7 +12,6 @@
 #define CORE_MASK 0x1 << 1
 #define DRAM_MASK 0x1 << 2
 #define ICNT_MASK 0x1 << 3
-
 class Simulator {
    public:
     Simulator(SimulationConfig config);

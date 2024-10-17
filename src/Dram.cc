@@ -99,7 +99,7 @@ bool PIM::is_full(uint32_t cid, MemoryAccess *request) {
 void PIM::push(uint32_t cid, MemoryAccess *request) {
     uint32_t mem_ch = get_channel_id(request);
 
-    auto settings = get_settings();
+    auto settings = sjq_rust::get_settings();
     if (settings->fast_read && request->req_type == MemoryAccessType::READ) {
         // return immediately
         request->request = false;

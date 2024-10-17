@@ -230,6 +230,7 @@ void Core::push_memory_response(MemoryAccess *response) {
             tile->remaining_accum_io--;
         } else {
             tile->remaining_loads--;
+            assert(0);
         }
     } else {
         assert(0);

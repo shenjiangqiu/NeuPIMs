@@ -2,10 +2,10 @@
 
 #include <memory>
 
+#include "Common.h"
 #include "Stat.h"
 #include "bindings.h"
 #include "helper/HelperFunctions.h"
-
 NeuPIMSCore::NeuPIMSCore(uint32_t id, SimulationConfig config)
     : _id(id),
       _config(config),
@@ -172,7 +172,7 @@ void NeuPIMSCore::issue(Tile &in_tile) {
                 // Increment the remaining loads counter and push the
                 // instruction to the load instruction queue
                 tile->remaining_loads++;
-                add_loads(1);
+                sjq_rust::add_loads(global_counts_ctx, 1);
                 _ld_inst_queue_for_sa.push(inst);
             } else {
                 // Log failure to allocate space in the buffer and assert
@@ -190,14 +190,14 @@ void NeuPIMSCore::issue(Tile &in_tile) {
                    inst.opcode == Opcode::MOVOUT_POOL) {
             // Handle MOVOUT and MOVOUT_POOL opcodes
             tile->remaining_accum_io++;
-            add_stores(1);
+            sjq_rust::add_stores(global_counts_ctx, 1);
             _st_inst_queue_for_sa.push(inst);
         } else {
             // Handle other opcodes
             tile->remaining_accum_io++;
-            add_stores(1);
+            sjq_rust::add_stores(global_counts_ctx, 1);
             tile->remaining_computes++;
-            add_computes(1);
+            sjq_rust::add_computes(global_counts_ctx, 1);
             _ex_inst_queue_for_sa.push(inst);
         }
     }
@@ -421,6 +421,7 @@ void NeuPIMSCore::push_memory_response(MemoryAccess *response) {
     Sram *acc_spad = &_acc_spad;
     Sram *spad = &_spad;
     uint32_t buf_id;
+
     if (auto parent = response->parent_tile.lock()) {
         if (parent->stage_platform == StagePlatform::PIM) {
             spad = &_pim_spad;
@@ -431,16 +432,23 @@ void NeuPIMSCore::push_memory_response(MemoryAccess *response) {
     bool is_write = response->req_type == MemoryAccessType::WRITE;
     bool is_read = response->req_type == MemoryAccessType::READ;
     if (auto tile = response->parent_tile.lock()) {
+        bool is_pim = tile->stage_platform == StagePlatform::PIM;
         if (is_write) {
             tile->remaining_accum_io--;
-            if (!reduce_stores(1)) {
-                spdlog::error("reduce_stores failed");
-                throw std::runtime_error("reduce_stores failed");
+            // fix here, only systolic array need this
+            if (!is_pim) {
+                if (!sjq_rust::reduce_stores(global_counts_ctx, 1)) {
+                    spdlog::error("reduce_stores failed");
+                    throw std::runtime_error("reduce_stores failed");
+                }
             }
+
         } else {
-            if (!reduce_loads(1)) {
-                spdlog::error("reduce_loads failed");
-                throw std::runtime_error("reduce_loads failed");
+            if (!is_pim) {
+                if (!sjq_rust::reduce_loads(global_counts_ctx, 1)) {
+                    spdlog::error("reduce_loads failed");
+                    throw std::runtime_error("reduce_loads failed");
+                }
             }
             assert(tile->remaining_loads > 0);
             tile->remaining_loads--;
@@ -483,6 +491,13 @@ void NeuPIMSCore::pim_push_memory_response(MemoryAccess *response) {
             tile->remaining_accum_io--;
         } else {
             tile->remaining_loads--;
+            spdlog::info("pim -- ");
+            unsigned total_tiles = 0;
+            for (auto &_tile : _pim_tiles) {
+                total_tiles += _tile->remaining_loads;
+            }
+            spdlog::info("PIM total_tiles: {}, get_loads: {}", total_tiles,
+                         sjq_rust::get_loads(global_counts_ctx));
         }
     } else {
         assert(0);

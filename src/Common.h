@@ -24,6 +24,7 @@
 #include <vector>
 
 // For backtrace
+#include <bindings.h>
 #include <execinfo.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -44,6 +45,7 @@
 #define PAGE_SIZE 4096
 
 #define ADDR_ALIGN 256
+extern sjq_rust::GlobalCountsCtx *global_counts_ctx;
 
 using json = nlohmann::json;
 template <typename T>
@@ -61,9 +63,12 @@ uint32_t mask_channel(addr_type address);
 addr_type allocate_address(uint32_t size);
 addr_type align(addr_type addr);
 
-uint64_t make_address(int channel, int rank, int bankgroup, int bank, int row, int col);
-uint64_t encode_pim_header(int channel, int row, bool for_gwrite, int num_comps, int num_readres);
-uint64_t encode_pim_comps_readres(int ch, int row, int num_comps, bool last_cmd);
+uint64_t make_address(int channel, int rank, int bankgroup, int bank, int row,
+                      int col);
+uint64_t encode_pim_header(int channel, int row, bool for_gwrite, int num_comps,
+                           int num_readres);
+uint64_t encode_pim_comps_readres(int ch, int row, int num_comps,
+                                  bool last_cmd);
 
 addr_type switch_co_ch(addr_type addr);
 }  // namespace AddressConfig
@@ -173,11 +178,21 @@ struct Tile {
     // count up for the compute instruction
     // populate accurate memory request when store instruction is decoded
     uint32_t remaining_accum_io;
-    StagePlatform stage_platform;  // SA program / PIM program (for sub-batch interleaving)
+    StagePlatform stage_platform;  // SA program / PIM program (for sub-batch
+                                   // interleaving)
     std::string repr();
 };
 
-enum class MemoryAccessType { READ, WRITE, GWRITE, COMP, READRES, P_HEADER, COMPS_READRES, SIZE };
+enum class MemoryAccessType {
+    READ,
+    WRITE,
+    GWRITE,
+    COMP,
+    READRES,
+    P_HEADER,
+    COMPS_READRES,
+    SIZE
+};
 
 std::string memAccessTypeString(MemoryAccessType type);
 std::string opcodeTypeString(Opcode opcode);
@@ -198,18 +213,18 @@ typedef struct MemoryAccess {
     cycle_type dram_finish_cycle;
     int buffer_id;
 
-    static std::vector<MemoryAccess *> from_instruction(Instruction &inst, uint32_t id,
-                                                        uint32_t size, MemoryAccessType req_type,
-                                                        bool request, uint32_t core_id,
-                                                        cycle_type start_cycle, int buffer_id,
-                                                        StagePlatform stage_platform);
+    static std::vector<MemoryAccess *> from_instruction(
+        Instruction &inst, uint32_t id, uint32_t size,
+        MemoryAccessType req_type, bool request, uint32_t core_id,
+        cycle_type start_cycle, int buffer_id, StagePlatform stage_platform);
 
     std::weak_ptr<Tile> parent_tile;
     // SA program / PIM program (for sub-batch interleaving)
     StagePlatform stage_platform;
 
     static void log_count() {
-        spdlog::info("total pre req count {} / memory request count {}", pre_req_count, req_count);
+        spdlog::info("total pre req count {} / memory request count {}",
+                     pre_req_count, req_count);
     }
 
 } MemoryAccess;
@@ -240,7 +255,8 @@ class BTensor;
 typedef struct {
     // client to scheduler.
     uint32_t id;
-    uint32_t arrival_cycle;    // time spend on client == arrival time to scheduler
+    uint32_t
+        arrival_cycle;  // time spend on client == arrival time to scheduler
     uint32_t completed_cycle;  // return time to client
 
     // request demand
@@ -262,16 +278,16 @@ void print_backtrace();
 void ast(bool cond);
 template <typename T>
 std::vector<T> slice(std::vector<T> &inp, int start, int end) {
-    if (end <= -1) end = inp.size() + (end + 1); 
+    if (end <= -1) end = inp.size() + (end + 1);
     return std::vector<T>(inp.begin() + start, inp.begin() + end);
 }
 
 template <typename T>
 class Singleton {
-   protected:
+protected:
     static T *instance;
 
-   public:
+public:
     static T *GetInstance() {
         if (instance == nullptr) instance = new T();
 
@@ -282,14 +298,16 @@ class Singleton {
 template <typename T>
 T *Singleton<T>::instance = nullptr;
 
-MemoryAccess *TransToMemoryAccess(Instruction &inst, uint32_t size, uint32_t core_id,
-                                  cycle_type start_cycle, int buffer_id,
-                                  StagePlatform stage_platform);
+MemoryAccess *TransToMemoryAccess(Instruction &inst, uint32_t size,
+                                  uint32_t core_id, cycle_type start_cycle,
+                                  int buffer_id, StagePlatform stage_platform);
 
 int LogBase2(int power_of_two);
 
 // for Sub-batch interleaving
 enum class Stage { A, B, C, D, E, F, Finish };
+
+sjq_rust::RunStage from_stage(Stage stage);
 enum class StagePlatform { SA, PIM, SIZE };
 std::string stageToString(Stage stage);
 std::string stagePlatformToString(StagePlatform sp);

@@ -1,3 +1,4 @@
+use clap::Parser;
 use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::EnvFilter;
 pub mod allocator;
@@ -25,6 +26,16 @@ impl From<LogLevel> for LevelFilter {
         }
     }
 }
+
+#[derive(Parser)]
+struct Cli {
+    sjqconfig: String,
+    config: String,
+    mem_config: String,
+    cli_config: String,
+    model_config: String,
+}
+pub fn run() {}
 /// 初始化日志记录器
 ///
 /// # 参数
@@ -49,6 +60,8 @@ pub extern "C" fn init_logger(level: LogLevel) {
 
 #[cfg(test)]
 mod tests {
+    use std::mem;
+
     #[test]
     fn it_works() {
         assert_eq!(2 + 2, 4);
@@ -56,5 +69,14 @@ mod tests {
     #[test]
     fn main() {
         println!("Hello, world!");
+        let _bx = Box::new("asdfadsf");
+        println!("a:{}", mem::size_of::<&str>());
+        println!("b:{}", mem::size_of::<&i32>());
+        let _c = [1, 2, 3];
+        println!("c:{}", mem::size_of::<Box<str>>());
+        println!("d:{}", mem::size_of::<Box<i32>>());
+        println!("e:{}", mem::size_of::<Box<[i32]>>());
+        println!("f:{}", mem::size_of::<Box<[i32; 3]>>());
+        println!("g:{}", mem::size_of::<[i32; 3]>());
     }
 }

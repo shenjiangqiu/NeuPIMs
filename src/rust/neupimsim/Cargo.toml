@@ -1,0 +1,8 @@
+[package]
+name = "neupimsim"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+neupimrust.workspace = true
+tracing.workspace = true

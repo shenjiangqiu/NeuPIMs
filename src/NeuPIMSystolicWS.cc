@@ -1,7 +1,7 @@
 #include "NeuPIMSystolicWS.h"
 
+#include "Common.h"
 #include "bindings.h"
-
 NeuPIMSystolicWS::NeuPIMSystolicWS(uint32_t id, SimulationConfig config)
     : NeuPIMSCore(id, config) {
     auto stat = NPUStat(_core_cycle);
@@ -51,16 +51,19 @@ void NeuPIMSystolicWS::systolic_cycle() {
             assert(0);
         }
         if (auto tile = inst.parent_tile.lock()) {
+            bool is_pim = tile->stage_platform == StagePlatform::PIM;
             tile->remaining_accum_io--;
-            if (!reduce_stores(1)) {
-                spdlog::error("reduce_stores failed");
-                throw std::runtime_error("reduce_stores failed");
-            }
+            if (!is_pim)
+                if (!sjq_rust::reduce_stores(global_counts_ctx, 1)) {
+                    spdlog::error("reduce_stores failed");
+                    throw std::runtime_error("reduce_stores failed");
+                }
             tile->remaining_computes--;
-            if (!reduce_computes(1)) {
-                spdlog::error("reduce_computes failed");
-                throw std::runtime_error("reduce_computes failed");
-            }
+            if (!is_pim)
+                if (!sjq_rust::reduce_computes(global_counts_ctx, 1)) {
+                    spdlog::error("reduce_computes failed");
+                    throw std::runtime_error("reduce_computes failed");
+                }
         } else {
             assert(0);
         }
@@ -91,16 +94,19 @@ void NeuPIMSystolicWS::vector_unit_cycle() {
                 assert(0);
             }
             if (auto tile = inst.parent_tile.lock()) {
+                auto is_pim = tile->stage_platform == StagePlatform::PIM;
                 tile->remaining_accum_io--;
-                if (!reduce_stores(1)) {
-                    spdlog::error("reduce_stores failed");
-                    throw std::runtime_error("reduce_stores failed");
-                }
+                if (!is_pim)
+                    if (!sjq_rust::reduce_stores(global_counts_ctx, 1)) {
+                        spdlog::error("reduce_stores failed");
+                        throw std::runtime_error("reduce_stores failed");
+                    }
                 tile->remaining_computes--;
-                if (!reduce_computes(1)) {
-                    spdlog::error("reduce_computes failed");
-                    throw std::runtime_error("reduce_computes failed");
-                }
+                if (!is_pim)
+                    if (!sjq_rust::reduce_computes(global_counts_ctx, 1)) {
+                        spdlog::error("reduce_computes failed");
+                        throw std::runtime_error("reduce_computes failed");
+                    }
             } else {
                 assert(0);
             }
@@ -140,13 +146,14 @@ void NeuPIMSystolicWS::ld_queue_cycle() {
             buffer->reserve(front.dest_addr, buffer_id, front.size,
                             accesses.size());
             if (auto tile = front.parent_tile.lock()) {
+                assert(accesses.size() > 0);
                 tile->remaining_loads += accesses.size() - 1;
-                add_loads(accesses.size() - 1);
+                sjq_rust::add_loads(global_counts_ctx, accesses.size() - 1);
                 tile->stat.memory_reads +=
                     accesses.size() * AddressConfig::alignment;
             } else {
                 assert(0);
-            } 
+            }
             for (auto access : accesses) {
                 filled = true;
                 ch_req_dist[AddressConfig::mask_channel(
@@ -257,7 +264,7 @@ void NeuPIMSystolicWS::st_queue_cycle() {
             if (auto tile = front.parent_tile.lock()) {
                 assert(accesses.size() > 0);
                 tile->remaining_accum_io += accesses.size() - 1;
-                add_stores(accesses.size() - 1);
+                sjq_rust::add_stores(global_counts_ctx, accesses.size() - 1);
                 tile->stat.memory_writes +=
                     accesses.size() * AddressConfig::alignment;
             } else {

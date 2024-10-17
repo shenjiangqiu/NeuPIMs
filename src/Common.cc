@@ -601,3 +601,23 @@ std::string stagePlatformToString(StagePlatform sp) {
     auto it = spMap.find(sp);
     return (it != spMap.end()) ? it->second : "unknown";
 }
+
+sjq_rust::RunStage from_stage(Stage stage) {
+    switch (stage) {
+        case Stage::A:
+            return sjq_rust::RunStage::A;
+        case Stage::B:
+            return sjq_rust::RunStage::B;
+        case Stage::C:
+            return sjq_rust::RunStage::C;
+        case Stage::D:
+            return sjq_rust::RunStage::D;
+        case Stage::E:
+            return sjq_rust::RunStage::E;
+        case Stage::F:
+            return sjq_rust::RunStage::F;
+        case Stage::Finish:
+            return sjq_rust::RunStage::Finished;
+    }
+    return sjq_rust::RunStage::Finished;
+}

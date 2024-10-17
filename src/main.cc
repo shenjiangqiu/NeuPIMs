@@ -8,11 +8,11 @@ namespace po = boost::program_options;
 
 int main(int argc, char **argv) {
     // parse command line argumnet
-    init_logger(LogLevel::Info);
+    sjq_rust::init_logger(sjq_rust::LogLevel::Info);
     // init_settings();
     // auto v = get_settings();
     // spdlog::info("fast_read: {}", v->fast_read);
-
+    global_counts_ctx = sjq_rust::new_global_counts_ctx();
     CommandLineParser cmd_parser = CommandLineParser();
     cmd_parser.add_command_line_option<std::string>("sjqconfig",
                                                     "sjq config file");
@@ -47,9 +47,9 @@ int main(int argc, char **argv) {
     std::string sjq_config_path;
     cmd_parser.set_if_defined("sjqconfig", &sjq_config_path);
     if (!sjq_config_path.empty()) {
-        init_settings_with_file(sjq_config_path.c_str());
+        sjq_rust::init_settings_with_file(sjq_config_path.c_str());
     } else {
-        init_settings();
+        sjq_rust::init_settings();
     }
 
     std::string model_base_path = "./models";
@@ -125,8 +125,8 @@ int main(int argc, char **argv) {
     simulator->launch_model(model);
     spdlog::info("Launch model: {}", model_name);
     simulator->run(model_name);
-    save_global_counts_to_file();
-
+    sjq_rust::save_global_counts_to_file(global_counts_ctx);
+    sjq_rust::drop_global_counts_ctx(global_counts_ctx);
     MemoryAccess::log_count();
 
     std::string yellow = "\033[1;33m";

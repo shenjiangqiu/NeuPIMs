@@ -156,6 +156,7 @@ Tile MatMul::initialize_instructions(uint32_t B, uint32_t M, uint32_t K,
         std::swap(activation_tensor, weight_tensor);
         activation_tensor->set_transposed();
         weight_tensor->set_transposed();
+        output_tensor->set_transposed();
     }
 
     // In MHA, calculating logit score or a uses 3D * 3D matrix multiplications.
@@ -420,6 +421,7 @@ Tile MatMul::initialize_instructions(uint32_t B, uint32_t M, uint32_t K,
     if (_is_transposed) {
         activation_tensor->unset_transposed();
         weight_tensor->unset_transposed();
+        output_tensor->unset_transposed();
     }
 
     // spdlog::info("{} instructions generated from tile {}",
