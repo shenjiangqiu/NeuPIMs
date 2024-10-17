@@ -14,5 +14,6 @@ toml = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["fmt", "env-filter"] }
 clap = {workspace = true, features = ["derive"]}
+derive_more = {workspace = true ,features = ["add_assign","deref"]}
 [build-dependencies]
 cbindgen = { workspace = true }

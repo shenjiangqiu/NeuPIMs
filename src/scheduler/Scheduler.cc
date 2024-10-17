@@ -396,6 +396,7 @@ void Scheduler::cycle() {
                 std::string red = "\033[1;31m";
                 std::string reset = "\033[0m";
                 spdlog::info("{}----------Stage {}----------{}", red, stageToString(_stage), reset);
+                sjq_rust::update_stage(global_counts_ctx, from_stage(_stage), *_core_cycle);
                 make_program();
             }
         }

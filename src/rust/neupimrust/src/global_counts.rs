@@ -1,60 +1,4 @@
-//! This module provides functionality for tracking and managing global counts of various operations
-//! such as loads, stores, and computes. It also tracks idle cycles and events related to these operations.
-//!
-//! The main structure in this module is `GlobalCountsCtx`, which holds the counts and related data.
-//! The module provides functions to create, update, and manage this context, as well as to save the
-//! accumulated data to a file.
-//!
-//! # Structures
-//!
-//! - `GlobalCountsCtx`: Holds the global counts and related data.
-//! - `GlobalCounts`: A serializable structure that can be created from `GlobalCountsCtx`.
-//!
-//! # Enums
-//!
-//! - `RunStage`: Represents different stages of a run.
-//! - `Event`: Represents different events that can occur during the operations.
-//!
-//! # Functions
-//!
-//! - `new_global_counts_ctx`: Creates a new `GlobalCountsCtx`.
-//! - `drop_global_counts_ctx`: Drops a `GlobalCountsCtx`.
-//! - `update_global_on_cycle`: Updates the global counts context for a given cycle.
-//! - `update_stage`: Updates the stage in the global counts context.
-//! - `end_stage`: Ends the stage in the global counts context.
-//! - `npu_finished`: Marks the NPU as finished in the global counts context.
-//! - `pim_finished`: Marks the PIM as finished in the global counts context.
-//! - `save_global_counts_to_file`: Saves the accumulated data to a file.
-//! - `add_loads`: Increases the load operation count.
-//! - `add_stores`: Increases the store operation count.
-//! - `add_computes`: Increases the compute operation count.
-//! - `get_loads`: Gets the current load operation count.
-//! - `get_stores`: Gets the current store operation count.
-//! - `get_computes`: Gets the current compute operation count.
-//! - `get_total`: Gets the total count of all operations.
-//! - `reduce_loads`: Decreases the load operation count.
-//! - `reduce_stores`: Decreases the store operation count.
-//! - `reduce_computes`: Decreases the compute operation count.
-//!
-//! # Example
-//!
-//! ```rust
-//! use global_counts::*;
-//!
-//! let mut ctx = GlobalCountsCtx::default();
-//! update_global_on_cycle(&mut ctx, 1);
-//! add_loads(&mut ctx, 1);
-//! add_stores(&mut ctx, 1);
-//! update_global_on_cycle(&mut ctx, 2);
-//! update_global_on_cycle(&mut ctx, 3);
-//! reduce_loads(&mut ctx, 1);
-//! update_global_on_cycle(&mut ctx, 4);
-//! reduce_stores(&mut ctx, 1);
-//! update_global_on_cycle(&mut ctx, 5);
-//! update_global_on_cycle(&mut ctx, 6);
-//! let counts = GlobalCounts::from_ctx(&ctx);
-//! serde_json::to_writer_pretty(file, &counts).expect("Unable to write to file");
-//! ```
+use derive_more::derive::AddAssign;
 use serde::Serialize;
 use std::{collections::BTreeMap, fs::File};
 use tracing::{error, info};
@@ -70,7 +14,7 @@ impl Default for MemStatus {
     }
 }
 
-#[derive(Default, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Serialize, PartialEq, Eq, PartialOrd, Ord, AddAssign)]
 pub struct Cycle(u64);
 
 /// record the current ongoing operations
@@ -107,24 +51,31 @@ pub struct CycleHistogram {
 
 #[derive(Default, Serialize)]
 pub struct GlobalCountsCtx {
-    /// current load store and computes operations
-    pub current_counts: Counts,
-    pub current_stage: RunStage,
-    // 记录上一次加载、存储、计算操作的开始时间
-    pub current_status: CurrentStatus,
-    /// idle 的时间间隔统计
-    pub idle_histo: CycleHistogram,
-    /// busy 的时间间隔统计
-    pub busy_histo: CycleHistogram,
+    // the statistics
+    /// the last cycle
+    pub last_cycle: u64,
+
     /// 总的busy 的时间
     pub busy_cycles: OpCycles,
     /// 持续idle时间
     pub idle_cycles: OpCycles,
 
-    pub event_vec: Vec<Event>,
-    pub last_cycle: u64,
+    /// idle 的时间间隔统计
+    pub idle_histo: CycleHistogram,
+    /// busy 的时间间隔统计
+    pub busy_histo: CycleHistogram,
+
     /// 累计的操作次数
     pub all_counts: Counts,
+
+    // the runtime info
+    /// current load store and computes operations
+    pub current_counts: Counts,
+    pub current_stage: RunStage,
+    // 记录上一次加载、存储、计算操作的开始时间
+    pub current_status: CurrentStatus,
+
+    pub event_vec: Vec<Event>,
 }
 
 #[no_mangle]
@@ -255,8 +206,11 @@ pub extern "C" fn add_loads(ctx: &mut GlobalCountsCtx, loads: u64, cycle: u64) {
                         .loads
                         .entry(Cycle(idle_duration))
                         .or_default() += 1;
+
+                    ctx.idle_cycles.loads += Cycle(idle_duration);
                 }
                 ctx.current_status.loads = MemStatus::Busy(cycle);
+
                 ctx.event_vec.push(Event {
                     cycle,
                     stage: ctx.current_stage,
@@ -271,6 +225,7 @@ pub extern "C" fn add_loads(ctx: &mut GlobalCountsCtx, loads: u64, cycle: u64) {
                                 .load_or_stores
                                 .entry(Cycle(idle_duration))
                                 .or_default() += 1;
+                            ctx.idle_cycles.load_or_stores += Cycle(idle_duration);
                         }
                         ctx.current_status.load_or_stores = MemStatus::Busy(cycle);
                         ctx.event_vec.push(Event {
@@ -307,6 +262,7 @@ pub extern "C" fn add_stores(ctx: &mut GlobalCountsCtx, stores: u64, cycle: u64)
                         .stores
                         .entry(Cycle(idle_duration))
                         .or_default() += 1;
+                    ctx.idle_cycles.stores += Cycle(idle_duration);
                 }
                 ctx.current_status.stores = MemStatus::Busy(cycle);
                 ctx.event_vec.push(Event {
@@ -323,6 +279,7 @@ pub extern "C" fn add_stores(ctx: &mut GlobalCountsCtx, stores: u64, cycle: u64)
                                 .load_or_stores
                                 .entry(Cycle(idle_duration))
                                 .or_default() += 1;
+                            ctx.idle_cycles.load_or_stores += Cycle(idle_duration);
                         }
                         ctx.current_status.load_or_stores = MemStatus::Busy(cycle);
                         ctx.event_vec.push(Event {
@@ -406,6 +363,7 @@ pub extern "C" fn reduce_loads(ctx: &mut GlobalCountsCtx, loads: u64, cycle: u64
                     .loads
                     .entry(Cycle(busy_duration))
                     .or_default() += 1;
+                ctx.busy_cycles.loads += Cycle(busy_duration);
                 ctx.current_status.loads = MemStatus::Idle(cycle);
                 ctx.event_vec.push(Event {
                     cycle: cycle,
@@ -423,6 +381,7 @@ pub extern "C" fn reduce_loads(ctx: &mut GlobalCountsCtx, loads: u64, cycle: u64
                             .load_or_stores
                             .entry(Cycle(busy_duration))
                             .or_default() += 1;
+                        ctx.busy_cycles.load_or_stores += Cycle(busy_duration);
                         ctx.current_status.load_or_stores = MemStatus::Idle(cycle);
                         ctx.event_vec.push(Event {
                             cycle: cycle,
@@ -465,6 +424,7 @@ pub extern "C" fn reduce_stores(ctx: &mut GlobalCountsCtx, stores: u64, cycle: u
                     .stores
                     .entry(Cycle(busy_duration))
                     .or_default() += 1;
+                ctx.busy_cycles.stores += Cycle(busy_duration);
                 ctx.current_status.stores = MemStatus::Idle(cycle);
                 ctx.event_vec.push(Event {
                     cycle: cycle,
@@ -482,6 +442,7 @@ pub extern "C" fn reduce_stores(ctx: &mut GlobalCountsCtx, stores: u64, cycle: u
                             .load_or_stores
                             .entry(Cycle(busy_duration))
                             .or_default() += 1;
+                        ctx.busy_cycles.load_or_stores += Cycle(busy_duration);
                         ctx.current_status.load_or_stores = MemStatus::Idle(cycle);
                         ctx.event_vec.push(Event {
                             cycle: cycle,

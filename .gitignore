@@ -19,3 +19,4 @@ perf.*
 /build_release
 /build_rel_dbg
 Cargo.lock
+counts.json
